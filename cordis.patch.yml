@@ -1,0 +1,9 @@
+# dsh-theme-liquid-glass bundle patch: inserts the loader entry for the web
+# plugin roster. The bundle is the official dsh plugin shape — install with
+# `dsh plugin --profile <name> add dsh-theme-liquid-glass` and this row lands
+# in the browser roster plus the host Loader automatically (reconciled by
+# `dsh plugin` from the package's `dsh.bundle.patch` declaration). To
+# uninstall: `dsh plugin --profile <name> remove dsh-theme-liquid-glass`.
+- insert:
+    - id: liquid-glass
+      name: 'dsh-theme-liquid-glass'
