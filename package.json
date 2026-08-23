@@ -1,6 +1,6 @@
 {
   "name": "dsh-theme-liquid-glass",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Apple Liquid Glass theme for DeepSeek Harness: frosted translucent UI tokens, dynamic wallpaper backgrounds (web URL / local HTML / image / video), and tunable glass (frost, refraction, tint, brightness).",
   "type": "module",
   "main": "lib/index.js",
