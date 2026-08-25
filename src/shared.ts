@@ -69,5 +69,7 @@ export interface LiquidGlassSettings {
     glassBrightness: number;
     /** Glass brightness 0.2..1.6 (wallpaper filter). */
     brightness: number;
+    /** feDisplacementMap scale 0..200 (edge refraction intensity). */
+    edgeRefractionScale: number;
   };
 }

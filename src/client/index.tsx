@@ -42,11 +42,24 @@ const BG_LAYER_ID = 'dsh-liquid-glass-bg';
 const SCRIM_ID = 'dsh-liquid-glass-scrim';
 const STYLE_ID = 'dsh-liquid-glass-style';
 
+const FILTER_ID = 'dsh-lg-filters';
+const EDGE_FILTER_ID = 'dsh-lg-edge-refraction';
+/** Inline SVG filter for edge refraction, applied via `backdrop-filter: url(#...)`.
+ *  feDisplacementMap with no explicit in/in2 → consumes the backdrop's own alpha
+ *  edge as the displacement map, creating a smooth liquid refraction at the
+ *  element border. filterUnits=objectBoundingBox ties the filter region to the
+ *  element. */
+const FILTER_SVG = `<svg id="${FILTER_ID}" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:fixed;pointer-events:none;visibility:hidden;top:0;left:0;overflow:hidden">
+  <filter id="${EDGE_FILTER_ID}" x="-10%" y="-10%" width="120%" height="120%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+    <feDisplacementMap scale="80"/>
+  </filter>
+</svg>`;
+
 const DEFAULTS: LiquidGlassSettings = {
   enabled: true,
   wallpaper: { kind: 'local', value: 'demo.html', proxy: false, muted: true },
   demo: { speed: 1, blobs: 6, colorCycle: 4, blur: 65, opacity: 0.85, wash: true },
-  glass: { frosted: true, blur: 24, bgBlur: 5, refraction: 0.4, tint: '#ffffff', tintOpacity: 0.35, toolTextColor: '', codeBlockOpacity: 0.7, glassBrightness: 1, brightness: 1 },
+  glass: { frosted: true, blur: 24, bgBlur: 5, refraction: 0.4, tint: '#ffffff', tintOpacity: 0.35, toolTextColor: '', codeBlockOpacity: 0.7, glassBrightness: 1, brightness: 1, edgeRefractionScale: 80 },
 };
 
 const WALLPAPER_KINDS: readonly WallpaperKind[] = ['none', 'url', 'html', 'image', 'video', 'local'];
@@ -129,6 +142,7 @@ function sanitizeSettings(raw: unknown): LiquidGlassSettings {
       codeBlockOpacity: clampNum(g.codeBlockOpacity, 0.2, 1, DEFAULTS.glass.codeBlockOpacity),
       glassBrightness: clampNum(g.glassBrightness, 0.2, 1.6, DEFAULTS.glass.glassBrightness),
       brightness: clampNum(g.brightness, 0.2, 1.6, DEFAULTS.glass.brightness),
+      edgeRefractionScale: clampNum(g.edgeRefractionScale, 0, 200, DEFAULTS.glass.edgeRefractionScale),
     },
   };
 }
@@ -327,24 +341,36 @@ body.dsh-lg-on [data-composer-card]::before {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  z-index: -1;
-  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
-  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+  z-index: 0;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%) url(#dsh-lg-edge-refraction);
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 10%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     inset 0 0 0 1px rgba(255, 255, 255, 0.22),
     inset 0 0 18px rgba(255, 255, 255, 0.10),
     inset 0 0 36px rgba(255, 255, 255, 0.05),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.20),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.20),
     0 0 24px rgba(255, 255, 255, 0.12);
 }
 body[data-ds-dark-theme].dsh-lg-on [data-composer-card]::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 14%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 0 0 1px rgba(255, 255, 255, 0.10),
     inset 0 0 18px rgba(255, 255, 255, 0.08),
     inset 0 0 40px rgba(255, 255, 255, 0.04),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.12),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.12),
     0 0 28px rgba(255, 255, 255, 0.10);
 }
+/* Edge refraction lives on the SAME backdrop-filter chain as the frosted blur
+   (no separate ::after ring with a binary mask). feDisplacementMap is driven by
+   the backdrop's alpha edges — strongest at the element border where the
+   backdrop transitions, weakest at the center — so refraction naturally
+   concentrates at the edge without a hard mask boundary. */
 /* Harness settings modal: the SAME frosted glass + lens edge as the composer
    card. [aria-labelledby] pins this to the settings dialog only — the generic
    Modal primitive and the image lightbox use aria-label, not aria-labelledby.
@@ -389,18 +415,24 @@ body.dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before {
   inset: 0;
   border-radius: inherit;
   z-index: -1;
-  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%);
-  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%) url(#dsh-lg-edge-refraction);
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 8%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.40),
     inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 0 12px rgba(255, 255, 255, 0.07);
+    inset 0 0 12px rgba(255, 255, 255, 0.07),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.12),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.12);
 }
 body[data-ds-dark-theme].dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 12%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 0 12px rgba(255, 255, 255, 0.05);
+    inset 0 0 12px rgba(255, 255, 255, 0.05),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.08),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.08);
 }
 /* Conversation page header (对话 / 轨迹 / session log bar): gradient frosted
    glass — strong backdrop blur at the TOP fading to no blur at the BOTTOM,
@@ -466,36 +498,48 @@ body.dsh-lg-on header:has([role="tablist"]) [role="tab"]::before {
   inset: 0;
   border-radius: inherit;
   z-index: -1;
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
-  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(12px) saturate(150%) url(#dsh-lg-edge-refraction);
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 8%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.40),
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     inset 0 0 10px rgba(255, 255, 255, 0.08),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.14),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.14),
     0 2px 10px rgba(0, 0, 0, 0.12);
 }
 body.dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"] {
   color: var(--dsw-alias-state-business-primary);
 }
 body.dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"]::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 14%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
     inset 0 0 0 1px rgba(255, 255, 255, 0.30),
     inset 0 0 14px rgba(255, 255, 255, 0.14),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.20),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.20),
     0 2px 12px rgba(0, 0, 0, 0.16);
 }
 body[data-ds-dark-theme].dsh-lg-on header:has([role="tablist"]) [role="tab"]::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 12%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     inset 0 0 0 1px rgba(255, 255, 255, 0.10),
     inset 0 0 10px rgba(255, 255, 255, 0.05),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.08),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.08),
     0 2px 10px rgba(0, 0, 0, 0.30);
 }
 body[data-ds-dark-theme].dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"]::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 16%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     inset 0 0 0 1px rgba(255, 255, 255, 0.16),
     inset 0 0 14px rgba(255, 255, 255, 0.08),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.12),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.12),
     0 2px 12px rgba(0, 0, 0, 0.35);
 }
 body.dsh-lg-on header:has([role="tablist"]) [role="tab"]::after {
@@ -539,10 +583,14 @@ body.dsh-lg-on [data-composer-card] button[class*="_primary"] {
     color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 20%, transparent),
     color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 6%, transparent));
   color: var(--dsw-alias-brand-primary);
+  -webkit-backdrop-filter: blur(12px) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(12px) url(#dsh-lg-edge-refraction);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.40),
     inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.20);
+    inset 0 -2px 6px rgba(0, 0, 0, 0.20),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.14),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.14);
 }
 body.dsh-lg-on [data-composer-card] button[class*="_primary"]:hover:not(:disabled) {
   background: linear-gradient(180deg,
@@ -556,7 +604,9 @@ body[data-ds-dark-theme].dsh-lg-on [data-composer-card] button[class*="_primary"
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.30),
     inset 0 0 0 1px rgba(255, 255, 255, 0.10),
-    inset 0 -2px 8px rgba(0, 0, 0, 0.35);
+    inset 0 -2px 8px rgba(0, 0, 0, 0.35),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.08),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.08);
 }
 body[data-ds-dark-theme].dsh-lg-on [data-composer-card] button[class*="_primary"]:hover:not(:disabled) {
   background: linear-gradient(180deg,
@@ -565,22 +615,82 @@ body[data-ds-dark-theme].dsh-lg-on [data-composer-card] button[class*="_primary"
 }
 /* Queue dock: same frosted glass + a wider lens rim. */
 body.dsh-lg-on [data-queue-dock] > div {
-  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%);
-  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(150%) url(#dsh-lg-edge-refraction);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     inset 0 0 12px rgba(255, 255, 255, 0.06);
 }
-/* Model selector popup: FULL-SCREEN. The menu is anchored inside the
-   composer card; position:fixed + inset:0 turns it into a full-viewport
-   overlay, the ::before pseudo dims the page behind it, and the inner
-   .scrollable list becomes a centered frosted-glass panel. The menu has
-   two panes: a "root" pane (Model / Effort cells) and the "model" pane
-   (provider-grouped model list). Both panes share the same role="menu"
-   container, so the full-screen overlay wraps both. Provider groups
-   ([role="group"]) get their own spacing + heading treatment. */
-body.dsh-lg-on [data-composer-card] [role="menu"] {
+/* Sidebar action buttons (new session, collapse, etc.): the same frosted glass
+   + edge refraction as the view tabs, applied via ::before so the button's
+   icon stays above the glass layer. The sidebar shell has a translucent
+   background already, so these buttons blend into the sidebar surface. */
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:not([aria-label*="访问模式" i]):not([aria-label*="Access mode" i]) {
+  position: relative;
+  isolation: isolate;
+}
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:not([aria-label*="访问模式" i]):not([aria-label*="Access mode" i])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(12px) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(12px) url(#dsh-lg-edge-refraction);
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 8%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 0 8px rgba(255, 255, 255, 0.06),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.10),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.10);
+}
+body[data-ds-dark-theme].dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:not([aria-label*="访问模式" i]):not([aria-label*="Access mode" i])::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 12%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 0 8px rgba(255, 255, 255, 0.04),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.06),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.06);
+}
+/* Sandbox mode trigger button: explicitly strip any glass effect so its
+   dropdown menu (position:fixed) is not affected by backdrop-filter creating
+   a new containing block. */
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button[aria-label*="访问模式" i],
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button[aria-label*="Access mode" i] {
+  position: static !important;
+  isolation: auto !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button[aria-label*="访问模式" i]::before,
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button[aria-label*="Access mode" i]::before {
+  display: none !important;
+}
+/* Sidebar logo / branding: exclude from the liquid glass effect — the square
+   shape looks odd when refracted. The logo is a wordmark SVG aria-hidden inside
+   a button. Reset glass on the SVG itself and suppress the ::before glass layer
+   on buttons containing the wordmark. */
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) svg[aria-hidden="true"] {
+  filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:has(svg[aria-hidden="true"])::before {
+  display: none !important;
+}
+/* Model selector popup: FULL-SCREEN.
+   Gated on :has(.scrollable) so this FULL-SCREEN treatment only applies to the
+   model/effort selector menu (which renders a .scrollable pane). The access-mode
+   dropdown in the composer modes row is also [role="menu"] but has no
+   .scrollable; leaving it a normal small dropdown instead of a fullscreen
+   overlay. */
+body.dsh-lg-on [data-composer-card] [role="menu"]:has(.scrollable) {
   position: fixed !important;
   inset: 0 !important;
   z-index: 1000 !important;
@@ -598,7 +708,7 @@ body.dsh-lg-on [data-composer-card] [role="menu"] {
   justify-content: center !important;
   padding: 0 !important;
 }
-body.dsh-lg-on [data-composer-card] [role="menu"]::before {
+body.dsh-lg-on [data-composer-card] [role="menu"]:has(.scrollable)::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -607,7 +717,7 @@ body.dsh-lg-on [data-composer-card] [role="menu"]::before {
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"]::before {
+body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"]:has(.scrollable)::before {
   background: rgba(0, 0, 0, 0.55);
 }
 /* The inner scrollable groups container: centered frosted-glass panel. */
@@ -720,6 +830,49 @@ body.dsh-lg-on [data-composer-card] [role="menu"] {
 body.dsh-lg-on [data-composer-card] [role="menu"] .scrollable {
   cursor: default;
 }
+/* Access-mode dropdown glass (see EDGE note below). */
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 74%, transparent) !important;
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%) url(#dsh-lg-edge-refraction);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 0 18px rgba(255, 255, 255, 0.08),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.14),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.14),
+    0 8px 32px rgba(0, 0, 0, 0.30);
+}
+body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #2a2a2a) 78%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 0 0 18px rgba(255, 255, 255, 0.06),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.08),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.50);
+}
+/* Access-mode dropdown: harness inner layers (viewport / itemWrap / item) carry
+   their own opaque surface + backdrop-filter. Strip all of them so only the
+   frosted :menu glass shows (no box-in-box). [class*="_item"] also covers the
+   menu buttons, and a hover highlight keeps the rows usable on the glass. */
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) [role="presentation"],
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) [class*="_viewport"],
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) [class*="_itemWrap"],
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) [class*="_item"],
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) button[role="menuitem"] {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) button[role="menuitem"]:hover,
+body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) button[role="menuitemradio"]:hover {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 20%, transparent) !important;
+}
+
 `;
 
 /** Body CSS variables the sheet consumes (retracted on dispose). */
@@ -762,6 +915,7 @@ function scrimValue(s: LiquidGlassSettings): string {
 class LiquidGlassApplier {
   private readonly style: HTMLStyleElement;
   private readonly layer: HTMLDivElement;
+  private filterEl: SVGSVGElement | null = null;
   private mediaKey = '';
   private removeOverrides: (() => void) | undefined;
 
@@ -773,6 +927,17 @@ class LiquidGlassApplier {
     this.layer = document.createElement('div');
     this.layer.id = BG_LAYER_ID;
     document.body.prepend(this.layer);
+    this.injectFilter();
+  }
+
+  private injectFilter(): void {
+    if (document.getElementById(FILTER_ID)) return;
+    const temp = document.createElement('div');
+    temp.innerHTML = FILTER_SVG;
+    const svg = temp.firstElementChild;
+    if (!svg) return;
+    document.body.appendChild(svg);
+    this.filterEl = svg as SVGSVGElement;
   }
 
   apply(settings: LiquidGlassSettings): void {
@@ -798,6 +963,11 @@ class LiquidGlassApplier {
     body.style.setProperty('--dsh-lg-tint', tint);
     body.style.setProperty('--dsh-lg-tint-dark', darkGlass(tint));
     body.style.setProperty('--dsh-lg-tool-text-color', g.toolTextColor || '');
+    // Update the SVG filter's displacement scale from the live setting.
+    if (this.filterEl) {
+      const disp = this.filterEl.querySelector('feDisplacementMap');
+      if (disp) disp.setAttribute('scale', String(clampNum(g.edgeRefractionScale, 0, 200, DEFAULTS.glass.edgeRefractionScale)));
+    }
 
     this.syncMedia(settings);
   }
@@ -891,6 +1061,8 @@ class LiquidGlassApplier {
     this.mediaKey = '';
     this.style.remove();
     this.layer.remove();
+    this.filterEl?.remove();
+    this.filterEl = null;
     document.body.classList.remove('dsh-lg-on');
     const body = document.body;
     for (const name of BODY_VARS) body.style.removeProperty(name);
@@ -1176,6 +1348,10 @@ function LiquidGlassPanel({ useStore, update, reset }: PanelProps) {
             <span>玻璃亮度（{g.glassBrightness.toFixed(2)}）</span>
             <input type="range" min={0.2} max={1.6} step={0.05} value={g.glassBrightness} onChange={(e) => patch('glass', { glassBrightness: Number(e.target.value) })} />
           </label>
+          <label style={row}>
+            <span>边缘折射（{g.edgeRefractionScale}）</span>
+            <input type="range" min={0} max={200} step={5} value={g.edgeRefractionScale} onChange={(e) => patch('glass', { edgeRefractionScale: Number(e.target.value) })} />
+          </label>
         </div>
       </div>
 
@@ -1321,6 +1497,12 @@ function applyCore(ctx: ClientContext): void {
       if (!document.body.classList.contains('dsh-lg-on')) return;
       const menu = document.querySelector<HTMLElement>('[data-composer-card] [role="menu"]');
       if (!menu) return;
+      // ONLY drive the FULL-SCREEN model/effort selector: it renders .scrollable
+      // and was styled position:fixed. Other [role="menu"] popovers inside the
+      // composer card — e.g. the access-mode dropdown (no .scrollable, default
+      // positioning) — must keep their own normal interaction and not be
+      // auto-navigated or auto-clicked here.
+      if (getComputedStyle(menu).position !== 'fixed') return;
       // Already looking at the model list? Do nothing.
       const scrollable = menu.querySelector('.scrollable');
       if (scrollable && getComputedStyle(scrollable).display !== 'none') return;
@@ -1368,6 +1550,9 @@ function applyCore(ctx: ClientContext): void {
       if (!document.body.classList.contains('dsh-lg-on')) return;
       const menu = document.querySelector<HTMLElement>('[data-composer-card] [role="menu"]');
       if (!menu || !menu.isConnected) return;
+      // Only the full-screen model selector dismisses on backdrop click; a
+      // normal small dropdown (access mode) must not be force-closed.
+      if (getComputedStyle(menu).position !== 'fixed') return;
       const target = e.target as Node;
       if (target !== menu) return;
       menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
