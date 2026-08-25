@@ -582,6 +582,8 @@ body.dsh-lg-on [data-variant] [data-disclosure-row] [class*="summary"] {
    button has class uV2eYG_add, aria-label="命令" / "Commands". */
 body.dsh-lg-on [data-composer-card] button[aria-label="命令"],
 body.dsh-lg-on [data-composer-card] button[aria-label*="Command" i] {
+  position: relative;
+  z-index: 1;
   color: var(--dsw-alias-label-primary) !important;
   background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 18%, transparent) !important;
 }
