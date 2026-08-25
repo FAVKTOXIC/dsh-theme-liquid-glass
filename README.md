@@ -4,6 +4,7 @@ Apple Liquid Glass 主题插件 for DeepSeek Harness。
 
 - **液态玻璃 UI**：通过 `ctx.theme.overrideTokens` 把 `--dsw-alias-*` 语义 token 覆盖为半透明玻璃质感（`{light, dark}` 两套值），
   玻璃参数由 body 上的 `--dsh-lg-*` CSS 变量驱动，改动即时生效。
+- **高亮提示**：所有可以点击的元素都有悬浮高亮提示.
 - **动态壁纸**：支持网页链接（iframe / 可选 host 代理）、本地 HTML（`<DSH_HOME>/wallpapers` 目录）、本地图片、本地视频。
 - **可自定义玻璃**：磨砂开关、磨砂强度（px）、边缘折射强度、玻璃颜色、玻璃亮度。
 - **毛玻璃实现**：`filter: blur()` 直接打在背景图层上（`inset: -48px` 留出模糊出血），**不用** `backdrop-filter`
