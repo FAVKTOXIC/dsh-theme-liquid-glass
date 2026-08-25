@@ -50,16 +50,16 @@ dsh plugin --profile web add dsh-theme-liquid-glass
 ### 方式二：本地开发链接
 
 ```bash
-dsh plugin --profile web add "D:\deepseek harness workspace\harness theme\dsh-theme-liquid-glass"
+dsh plugin --profile web add "<本主题源码目录的绝对路径>"
 ```
 
 刷新浏览器即可生效。
 
 > **改代码后的重装**：本地开发时，每次改代码后需重新构建并重装到 profile：
 > ```bash
-> cd "D:\deepseek harness workspace\harness theme\dsh-theme-liquid-glass"
+> cd <本主题源码目录>
 > node build.mjs
-> dsh plugin --profile web add "D:\deepseek harness workspace\harness theme\dsh-theme-liquid-glass"
+> dsh plugin --profile web add "<本主题源码目录的绝对路径>"
 > ```
 > 开发期也可用 `node build.mjs --watch` 监听源码自动重建。
 > **client 改动**（设置页 UI、玻璃参数）构建后刷新即可生效；
