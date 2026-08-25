@@ -732,6 +732,43 @@ body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) svg[aria-hidden="true"
 body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:has(svg[aria-hidden="true"])::before {
   display: none !important;
 }
+/* Sidebar shell: the same frosted glass + edge refraction + luminous edge as
+   the input card. The ::before pseudo carries the backdrop-filter so the
+   sidebar content (tree, buttons) stays above the glass. The shell already
+   has a translucent --dsw-specific-sidebar-fill; we override it to transparent
+   and let the ::before provide the tint + blur + refraction. */
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+}
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%) url(#dsh-lg-edge-refraction);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%) url(#dsh-lg-edge-refraction);
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 12%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 0 18px rgba(255, 255, 255, 0.10),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.20),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.20),
+    6px 0 24px rgba(255, 255, 255, 0.06);
+}
+body[data-ds-dark-theme].dsh-lg-on [class*="_root"]:has([class*="_treeBody"])::before {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 18%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    inset 0 0 18px rgba(255, 255, 255, 0.06),
+    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.10),
+    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.10),
+    6px 0 24px rgba(255, 255, 255, 0.04);
+}
 /* Model selector popup: FULL-SCREEN.
    Gated on :has(.scrollable) so this FULL-SCREEN treatment only applies to the
    model/effort selector menu (which renders a .scrollable pane). The access-mode
