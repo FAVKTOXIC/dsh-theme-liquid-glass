@@ -2,6 +2,12 @@
 
 **Genuine Liquid Glass theme for DeepSeek Harness Web UI.**
 
+<p align="center">
+  <strong>
+    <a href="./README.zh.md">简体中文</a>
+  </strong>
+</p>
+
 A complete frosted-glass skin: SVG edge refraction, a customizable animated
 wallpaper, glass-lens buttons, a redesigned full-screen model selector, and a
 dedicated water-drop settings icon.

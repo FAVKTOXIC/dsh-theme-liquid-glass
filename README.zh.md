@@ -2,6 +2,12 @@
 
 **DeepSeek Harness Web UI 的纯正液态玻璃主题。**
 
+<p align="center">
+  <strong>
+    <a href="./README.md">English</a>
+  </strong>
+</p>
+
 一套完整的磨砂玻璃皮肤：SVG 边缘折射、可自定义的动态壁纸、玻璃透镜质感按钮、
 重新设计的全屏模型选择器，以及专属的水滴设置图标。
 
