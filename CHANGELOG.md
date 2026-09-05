@@ -10,6 +10,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.2] - 2026-09-05
+
+### 中文
+
+#### 文档
+- 在 `README.md` 与 `README.zh.md` 顶部加入**中英文互跳链接**
+  （英文版顶部「简体中文」→ `README.zh.md`，中文版顶部「English」→ `README.md`），
+  便于在 GitHub 渲染的仓库页之间切换语言。
+
+### English
+
+#### Docs
+- Added **cross-language switch links** at the top of `README.md` and
+  `README.zh.md` (「简体中文」→ `README.zh.md` in the English file, and
+  `English` → `README.md` in the Chinese file) so readers can switch languages
+  on GitHub-rendered pages.
+
+---
+
 ## [0.4.1] - 2026-09-05
 
 ### 中文
@@ -107,6 +126,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+[0.4.2]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.4.2
 [0.4.1]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.4.1
 [0.4.0]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.4.0
 [0.3.1]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.3.1

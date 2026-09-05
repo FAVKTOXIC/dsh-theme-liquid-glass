@@ -1,6 +1,6 @@
 {
     "name": "dsh-theme-liquid-glass",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "description": "Genuine Liquid Glass theme for DSH Web UI: SVG feDisplacementMap edge refraction on input card, send button, bubbles, view tabs, queue dock and sidebar. Built-in animated demo wallpaper, customizable background blur & brightness, redesigned model selector popup, glass-styled buttons, and a unique water-drop settings icon.",
     "type": "module",
     "main": "lib/index.js",

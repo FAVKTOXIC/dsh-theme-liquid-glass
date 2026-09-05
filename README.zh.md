@@ -11,7 +11,7 @@
 一套完整的磨砂玻璃皮肤：SVG 边缘折射、可自定义的动态壁纸、玻璃透镜质感按钮、
 重新设计的全屏模型选择器，以及专属的水滴设置图标。
 
-> **v0.4.1** — 需要 **DeepSeek Harness ≥ `0.1.2-rc.1`**。本版本适配 harness 的客户端包拆分：
+> **v0.4.2** — 需要 **DeepSeek Harness ≥ `0.1.2-rc.1`**。本版本适配 harness 的客户端包拆分：
 > 已被移除的 `@deepseek-ai/dsh-client-runtime` 的 store 部分迁移到了
 > `@deepseek-ai/dsh-client-store`。详见 [CHANGELOG.md](CHANGELOG.md)。
 
