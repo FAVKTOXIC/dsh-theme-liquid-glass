@@ -10,6 +10,30 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.1] - 2026-09-05
+
+### 中文
+
+#### 文档
+- 重写 `README.md` / `README.zh.md`：按「功能特性 / 目录结构 / 安装 / 构建 /
+  客户端注入 / 持久化 / 设置项参考 / 首次启动 / 预览」结构化组织，中英双语对称；
+  补充兼容性说明（需要 harness ≥ `0.1.2-rc.1`）、并把本地开发链接一节改写成
+  Windows junction 的正确姿势（直接 `dsh plugin add "<绝对路径>"` 会生成坏相对
+  符号链接并把该插件从 profile bundles 列表移除）。
+
+### English
+
+#### Docs
+- Rewrote `README.md` / `README.zh.md` with a structured layout (Features /
+  Structure / Install / Build / Client Injection / Persistence / Settings
+  Reference / First Launch / Screenshots), kept the bilingual content symmetric,
+  added the compatibility note (requires harness ≥ `0.1.2-rc.1`), and rewrote the
+  local-development section to use a Windows junction (a plain
+  `dsh plugin add "<absolute-path>"` creates a broken relative symlink and drops
+  the plugin from the profile `bundles` list).
+
+---
+
 ## [0.4.0] - 2026-09-05
 
 ### 中文
@@ -83,6 +107,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+[0.4.1]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.4.1
 [0.4.0]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.4.0
 [0.3.1]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.3.1
 [0.3.0]: https://github.com/FAVKTOXIC/dsh-theme-liquid-glass/releases/tag/v0.3.0
