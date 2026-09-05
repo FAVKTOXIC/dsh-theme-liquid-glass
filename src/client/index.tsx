@@ -23,9 +23,9 @@
  * - Tokens are plain rgba() pairs ({light, dark}) — no color-mix, which would
  *   make a custom property referencing itself go guaranteed-invalid.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
+import type { Context as ClientContext } from '@deepseek-ai/cordis';
 import type { ThemeTokenOverrides } from '@deepseek-ai/dsh-client-ui-theme/client';
-import { defineStore } from '@deepseek-ai/dsh-client-runtime/client';
+import { defineStore } from '@deepseek-ai/dsh-client-store';
 import type { ChangeEvent, CSSProperties } from 'react';
 import type { LiquidGlassSettings, WallpaperKind } from '../shared';
 
@@ -1136,7 +1136,7 @@ type PanelBakedActions = {
   sync: (settings: LiquidGlassSettings, revision: number) => void;
 };
 
-type PanelStoreHandle = import('@deepseek-ai/dsh-client-runtime/client').EngineStoreHandle<PanelState, PanelActions>;
+type PanelStoreHandle = import('@deepseek-ai/dsh-client-store').EngineStoreHandle<PanelState, PanelActions>;
 
 function createPanelStore(): PanelStoreHandle {
   return defineStore<PanelState, PanelActions>({

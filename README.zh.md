@@ -2,6 +2,10 @@
 
 真正的液态玻璃 DeepSeek Harness 主题。Genuine Liquid Glass theme for DSH Web UI.
 
+> **v0.4.0** — 需要 **DeepSeek Harness ≥ `0.1.2-rc.1`**。适配其客户端包拆分
+> （`@deepseek-ai/dsh-client-store` 取代已移除的 `@deepseek-ai/dsh-client-runtime` 的 store 部分）。
+> 详见 [CHANGELOG.md](CHANGELOG.md)。
+
 - **SVG 边缘折射（v0.3.0）**：输入框、发送按钮、消息气泡、视图标签、队列坞、侧边栏按钮应用 SVG feDisplacementMap 边缘折射效果，模拟液态玻璃的"边缘膨胀"变形。强度可通过设置滑块调节。
 - **自定义背景亮度与模糊**：独立调节壁纸背景的模糊程度（`bgBlur`）和亮度（`brightness`），让壁纸在玻璃之下呈现最佳效果。
 - **自带高质量动态色块壁纸**：内置可自定义的动画色块壁纸（速度、色块数量、颜色变化、模糊、透明度），开箱即用。

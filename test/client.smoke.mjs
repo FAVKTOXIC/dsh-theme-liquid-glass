@@ -80,7 +80,7 @@ if (entry.id !== 'dsh-theme-liquid-glass') throw new Error(`unexpected bundle id
 // Fake require: the bundle only needs these two specifiers.
 const fakeRequire = (id) => {
   if (id === 'react/jsx-runtime') return { jsx: () => null, jsxs: () => null, Fragment: () => null };
-  if (id === '@deepseek-ai/dsh-client-runtime/client') {
+  if (id === '@deepseek-ai/dsh-client-store') {
     return {
       defineStore: (decl) => ({
         spec: decl,

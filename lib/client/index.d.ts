@@ -23,7 +23,7 @@
  * - Tokens are plain rgba() pairs ({light, dark}) — no color-mix, which would
  *   make a custom property referencing itself go guaranteed-invalid.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
+import type { Context as ClientContext } from '@deepseek-ai/cordis';
 /**
  * Cordis service dependencies (SERVICE names, not package ids — the client
  * loader builds the fiber inject map from this exported array). Mirrors the

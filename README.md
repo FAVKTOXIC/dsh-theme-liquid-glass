@@ -2,6 +2,10 @@
 
 Genuine Liquid Glass theme for DeepSeek Harness Web UI.
 
+> **v0.4.0** — Requires **DeepSeek Harness ≥ `0.1.2-rc.1`**. Adapts to the client package
+> split (`@deepseek-ai/dsh-client-store` replaces the store part of the removed
+> `@deepseek-ai/dsh-client-runtime`). See [CHANGELOG.md](CHANGELOG.md).
+
 - **SVG Edge Refraction (v0.3.0)** — SVG feDisplacementMap edge refraction on the input card, send button, message bubbles, view tabs, queue dock, and sidebar buttons. The refraction intensity is adjustable via a settings slider.
 - **Custom Background Blur & Brightness** — Independently control the wallpaper blur (`bgBlur`) and brightness (`brightness`) so the background looks perfect under the glass.
 - **Built-in Animated Demo Wallpaper** — A customizable animated color-blob wallpaper (speed, blob count, color cycle, blur, opacity) that works out of the box.
