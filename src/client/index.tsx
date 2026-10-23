@@ -27,6 +27,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis';
 import type { ThemeTokenOverrides } from '@deepseek-ai/dsh-client-ui-theme/client';
 import { defineStore } from '@deepseek-ai/dsh-client-store';
 import type { ChangeEvent, CSSProperties } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { LiquidGlassSettings, WallpaperKind } from '../shared';
 
 // Inlined constants (the client bundle stays a single module — the shell
@@ -272,6 +273,17 @@ function buildTokens(s: LiquidGlassSettings): ThemeTokenOverrides {
   set('--dsw-alias-border-l4', edges(0.55));
   set('--dsw-alias-toast-bg', glass(a * 0.82));
   set('--dsw-alias-tooltip-bg', glass(a * 0.85));
+  // Text contrast in LIGHT mode. The harness greys are tuned for an OPAQUE white
+  // canvas (label-secondary #61666b, label-tertiary #81858c, label-caption
+  // #adb2b8 = about 2.1:1), but this theme paints translucent surfaces over a
+  // wallpaper, which eats the remaining contrast. Push the light-mode steps one
+  // to two shades darker (bluish-850 / 750 / 700) so secondary text, subtitles
+  // and captions stay readable. Dark mode already sits on dark surfaces, so it
+  // keeps the harness values via the static tokens.
+  const darkLabel = (step: number) => `var(--dsw-static-neutral-bluish-${step})`;
+  set('--dsw-alias-label-secondary', { light: '#2c2c2e', dark: darkLabel(300) });
+  set('--dsw-alias-label-tertiary', { light: '#43454a', dark: darkLabel(400) });
+  set('--dsw-alias-label-caption', { light: '#61666b', dark: darkLabel(600) });
   return t;
 }
 
@@ -402,14 +414,78 @@ body[data-ds-dark-theme].dsh-lg-on [role="dialog"][aria-labelledby]::before {
     inset 0 0 40px rgba(255, 255, 255, 0.04),
     0 0 28px rgba(255, 255, 255, 0.10);
 }
+/* ── Surfaces the glass recipe left see-through ───────────────────────────────
+   Four places where "translucent surface" went too far. Each gets a real fill
+   plus the same backdrop blur, at an opacity that stays legible (78%, and 84%
+   for the file preview, which has to read like a panel).
+   All four are anchored on the harness's own stable data-/role attributes: the
+   CSS-module class names are build-time hashes and must never be selectors. */
+/* 1 + 2. The choice dialog. user-questions renders it as a card above the
+   composer ([data-question-key]) and the plan-review panel exactly the same way
+   ([data-plan-review-key]); NEITHER carries role="dialog", so the settings-dialog
+   rule above never reached them — that is why they had no blur and no fill. Their
+   fill comes from --dsw-specific-input-major, which this theme sets to
+   glass(0.35); that token is shared with the composer input box, so the fix is
+   scoped to these two cards rather than the token. */
+body.dsh-lg-on [data-question-key] [class*="_card"],
+body.dsh-lg-on [data-plan-review-key] [class*="_card"] {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 78%, transparent);
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+/* 3. The changed-files hover preview. The floating surface is HoverCard's card
+   (className Gn.card + Gn.preview), whose own fill is
+   background: var(--dsw-alias-bg-layer-1) — a token this theme sets to
+   glass(0.55), so the panel reads as see-through. Its class is a build-time hash
+   and its positioning style is inline, so the surface is matched as the element
+   that DIRECTLY wraps the harness's stable [data-changes-hover-preview]
+   attribute (verified in the primitives bundle: the card renders the preview
+   content as its child). Specificity must beat the module rule, hence the
+   body.dsh-lg-on prefix. The surface keeps its own radius, shadow and zero
+   padding, so painting it is enough — the inner element stays untouched. */
+body.dsh-lg-on *:has(> [data-changes-hover-preview]) {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 84%, transparent);
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+}
+/* 4 + 5. Two surfaces that DO paint a background, but from tokens this theme makes
+   faint: the edited-files card at the end of a turn (--dsw-alias-bg-layer-1 is
+   glass(0.55)) and the question/answer receipt bubble in the transcript
+   (--dsw-specific-bubble is glass(0.5)). Both keep their stock border/shape, so
+   only the fill and the blur are added. */
+body.dsh-lg-on [data-changed-files],
+body.dsh-lg-on [data-question-reply] [class*="_bubble"] {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 78%, transparent);
+  -webkit-backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+  backdrop-filter: blur(var(--dsh-lg-blur, 24px)) saturate(160%);
+}
+body[data-ds-dark-theme].dsh-lg-on [data-question-key] [class*="_card"],
+body[data-ds-dark-theme].dsh-lg-on [data-plan-review-key] [class*="_card"] {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 78%, transparent);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+body[data-ds-dark-theme].dsh-lg-on *:has(> [data-changes-hover-preview]) {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 84%, transparent);
+}
+body[data-ds-dark-theme].dsh-lg-on [data-changed-files],
+body[data-ds-dark-theme].dsh-lg-on [data-question-reply] [class*="_bubble"] {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 78%, transparent);
+}
 /* User message bubbles: the same frosted glass + lens edge as the composer
    card, so sent messages read as one material family. backdrop-filter rides
-   the ::before pseudo (isolation + z-index:-1), never the bubble itself. */
-[data-time-hover-root] [class*="_bubble"] {
+   the ::before pseudo (isolation + z-index:-1), never the bubble itself.
+   The anchor is a dual selector on purpose: harness <=0.1.x wrapped the
+   transcript in [data-time-hover-root], while harness >=0.2 dropped that
+   attribute and the scroll container is [data-conversation-scroll]. Listing
+   both keeps one stylesheet working on either runtime. */
+[data-time-hover-root] [class*="_bubble"],
+[data-conversation-scroll] [class*="_bubble"] {
   position: relative;
   isolation: isolate;
 }
-body.dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before {
+body.dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before,
+body.dsh-lg-on [data-conversation-scroll] [class*="_bubble"]::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -425,7 +501,8 @@ body.dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before {
     inset 2px 2px 6px 2px rgba(255, 255, 255, 0.12),
     inset -2px -2px 4px -1px rgba(255, 255, 255, 0.12);
 }
-body[data-ds-dark-theme].dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before {
+body[data-ds-dark-theme].dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before,
+body[data-ds-dark-theme].dsh-lg-on [data-conversation-scroll] [class*="_bubble"]::before {
   background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 12%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
@@ -437,10 +514,26 @@ body[data-ds-dark-theme].dsh-lg-on [data-time-hover-root] [class*="_bubble"]::be
 /* Conversation page header (对话 / 轨迹 / session log bar): gradient frosted
    glass — strong backdrop blur at the TOP fading to no blur at the BOTTOM,
    via a vertical mask on the ::before pseudo (z-index:-1, isolation so the
-   blur layer never re-anchors anything). */
+   blur layer never re-anchors anything).
+   EVERY rule for this bar carries a DUAL header anchor:
+     - header:has([role="tablist"]) — harness <=0.1.x, where the view tabs
+       live inside the header (so the bar is only matched once tabs render);
+     - [data-slot="conversation.header"] > header — harness >=0.2, where the
+       mark-up is div[data-phase] > [data-slot="conversation.header"]
+       (display:contents) > header, and the tablist is conditional, so this
+       arm is what keeps the frost on a single-view session (no 轨迹 tab).
+   Keep both arms: dropping either regresses one runtime. */
+body.dsh-lg-on [data-slot="conversation.header"] > header,
 body.dsh-lg-on header:has([role="tablist"]) {
   isolation: isolate;
+  /* The stock header paints its hairline as a real
+     border-bottom (.5px solid, --dsw-alias-border-l3), which this theme turns
+     into a bright white line — and with the bar now floating over the
+     transcript it reads as a white seam between the bar and the chat. The
+     boundary must be seamless, so drop the border itself (not just a pseudo). */
+  border-bottom: none;
 }
+body.dsh-lg-on [data-slot="conversation.header"] > header::before,
 body.dsh-lg-on header:has([role="tablist"])::before {
   content: "";
   position: absolute;
@@ -451,18 +544,32 @@ body.dsh-lg-on header:has([role="tablist"])::before {
   -webkit-mask-image: linear-gradient(to bottom, black 0%, black 30%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 0%, black 30%, transparent 100%);
 }
-/* Drop the header's bottom hairline — with the gradient frost the boundary
-   should be seamless (the stock ::after line paints --dsw-alias-border-l2,
-   which the glass theme turns into a bright white line). */
+/* Drop the header's bottom hairline pseudo as well: harness <=0.1.x painted the
+   separator with an ::after element (harness >=0.2 has no such pseudo — there the
+   hairline is the real border-bottom removed by the rule above), so keep this
+   arm for the older runtime. */
+body.dsh-lg-on [data-slot="conversation.header"] > header::after,
 body.dsh-lg-on header:has([role="tablist"])::after {
   display: none;
 }
-/* The bar FLOATS OVER the scrolling message list (the stock layout puts the
-   header in a separate flex row, so nothing ever passed beneath it). The
-   conversation text now glides under the bar and is frosted by the gradient
-   above: strong blur at the bar's top, fully transparent at its bottom.
-   Note: every slot render is wrapped in a <div data-slot=... display:contents>
-   (web-react SlotOutlet), so the header is one level below the root. */
+/* The bar FLOATS OVER the scrolling message list. On harness >=0.2 the layout is
+   div[data-phase].root (display:flex column, position:relative) >
+   [data-slot="conversation.header"] (display:contents) > header, followed by
+   the content seat, so taking the header out of flow lets the message list fill
+   the full height and glide UNDER the bar, frosted by the gradient above:
+   strong blur at the bar's top, fully transparent at its bottom. The stock
+   .root is already position:relative, so the absolute header — and the
+   ::before pseudo that anchors to it — resolve against the conversation.
+   Keeping the header in flow is what made this bar look like an opaque strip. */
+body.dsh-lg-on [data-phase="active"] > [data-slot="conversation.header"] > header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: transparent;
+}
+/* Legacy (≤0.1.x) equivalent of the rule above. */
 body.dsh-lg-on div:has(> [data-conversation-scroll])[data-phase="active"] {
   position: relative;
   isolation: isolate;
@@ -476,93 +583,263 @@ body.dsh-lg-on div:has(> [data-conversation-scroll])[data-phase="active"] > [dat
   background: transparent;
 }
 /* Reserve the header's height so the first message starts below the bar; the
-   padding scrolls away, letting text pass beneath the gradient blur. */
+   padding scrolls away, letting text pass beneath the gradient blur.
+   56px = the one-row header (48px) plus an 8px breathing gap. */
+body.dsh-lg-on [data-phase="active"] [data-conversation-scroll],
 body.dsh-lg-on div:has(> [data-conversation-scroll])[data-phase="active"] > [data-conversation-scroll] {
   box-sizing: border-box;
-  padding-top: 88px;
+  padding-top: 56px;
 }
-/* View tabs: floating glass capsules with a highlight edge (the old underline
-   indicator is replaced by the capsule surface). backdrop-filter rides the
-   ::before pseudo, never the button itself. */
+/* Header layout: the stock header is a TWO-ROW grid (leading seat + title on the
+   first row, then the 对话/轨迹 tabs on their own full-width second row), which
+   costs 76px of vertical space for no reason. Lay it out as ONE flex row: the
+   leading seat, the title (flexible), then the tabs at the right end of that
+   same row. The tablist is a direct flex item because the session-header slot
+   anchor is display:contents. */
+body.dsh-lg-on [data-slot="conversation.header"] > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  /* Keep the stock horizontal padding: the title row clears the floating
+     leading seat with calc(--dsh-frame-leading-clearance - 20px), so the 20px
+     start padding is part of that geometry. Only the two-row vertical padding
+     goes away. */
+  padding: 0 28px 0 20px;
+}
+body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_titleRow"] {
+  /* The title row holds the crumbs, the header actions, the "open in…" dropdown
+     (conversation.session.header.utilities) and the sidebar-right toggle
+     (…header.corner), while the 对话/轨迹 tablist is its SIBLING. To seat the
+     tabs immediately LEFT of that dropdown — instead of after the whole title
+     row — the row is dissolved with display:contents so its children become flex
+     items of this header and can be reordered below. Nothing inside depends on
+     the row's box: no @container query in the harness targets these classes. */
+  display: contents;
+}
+body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_titleCluster"] {
+  /* First box of the row, so it carries the leading-seat clearance that used to
+     live on the title row, and takes the free space so everything after it is
+     pushed to the right end. */
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-inline-start: max(0px, calc(var(--dsh-frame-leading-clearance, 0px) - 20px));
+}
+body.dsh-lg-on [data-conversation-tabs] {
+  order: 2;
+}
+body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerUtilities"] {
+  order: 3;
+  /* Distance from the tabs comes from the header's own gap; the stock 20px was
+     there to separate the utilities from the title, which the tabs now do. */
+  margin-left: 0;
+}
+body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerCorner"] {
+  order: 4;
+}
+/* Fullscreen toggle injected through the header utilities slot (see the client
+   half): a plain 28px icon button matching the other header controls. */
+body.dsh-lg-on button.dsh-lg-fullscreen-toggle {
+  order: 5;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+body.dsh-lg-on button.dsh-lg-fullscreen-toggle:hover {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 12%, transparent);
+  color: var(--dsw-alias-label-primary);
+}
+body[data-ds-dark-theme].dsh-lg-on button.dsh-lg-fullscreen-toggle:hover {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 16%, transparent);
+}
+/* ── Desktop (Windows caption): merge the bar INTO the 40px caption band ───────
+   On the desktop build the topmost strip is the frameless window's caption band,
+   shared by three parties: the layout frame paints the drag region there, the
+   native minimize/maximize/close buttons are drawn ABOVE the page on the right,
+   and the preload injects the app menubar ("应用菜单 / 编辑") into a shadow root on
+   the left. The harness itself already seats its own chrome controls inside that
+   band with position:fixed — the sidebar toggle at left:12px, new-session at
+   left:48px — and moves the menubar right by setting --dsh-windows-menu-start to
+   84px once the sidebar collapses. So this is the harness's own pattern, not a
+   new invention: the bar leaves the column, becomes a window-level strip exactly
+   as tall as the band, and clears the occupants on both sides. */
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header,
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--dsh-windows-titlebar-height, 40px);
+  min-height: 0;
+  /* The box itself must START after the window-chrome occupants — padding is not
+     enough: a bar whose box spans them swallows their clicks (the harness pins the
+     sidebar toggle at left:12px and, while collapsed, new-session at left:48px,
+     and the preload's menubar overlay sits at --dsh-windows-menu-start). The
+     occupants are: the toggle (12px..40px), the menubar (about 126px wide) and an
+     8px gap. Reading the variable keeps this correct when the harness shifts the
+     menubar to 84px once the sidebar collapses. */
+  left: calc(var(--dsh-windows-menu-start, 48px) + 134px);
+  padding-left: 0;
+  /* Right: the native caption buttons cannot be styled or moved, so the content
+     simply has to stop before them. Electron publishes the remaining title bar
+     area through the Window Controls Overlay environment variables; the plain
+     148px declaration (3 x 46px plus a small gap) is the fallback in case those do
+     not resolve. */
+  padding-right: 148px;
+  padding-right: max(148px, calc(100vw - env(titlebar-area-width, 100vw)));
+  /* That band IS the window drag region, and the harness only marks
+     [data-window-drag] as draggable on macOS. Since this bar covers the band from
+     its new left edge, it claims the region there — and hands it back for anything
+     clickable. */
+  -webkit-app-region: drag;
+}
+/* The band's own gradient frost is the SINGLE frost source for the caption area:
+   the frame pseudo below already spans the full width, so the bar's own pseudo is
+   switched off here. Two stacked backdrop-filters would blur twice — and the bar
+   no longer covers the band's left stretch anyway, which would leave a visible
+   seam where the doubling starts. */
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header::before,
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"])::before {
+  display: none;
+}
+/* The right-most header control (the right-sidebar toggle) must not slide under
+   the native caption buttons: the stock rule pulls it 16px to the right with a
+   negative margin, which ate into the clearance above. */
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerCorner"] {
+  margin-right: 0;
+}
+/* The sidebar's own collapse/expand control is a WINDOW-CHROME control on the
+   desktop: the harness pins it into the caption band with position:fixed
+   (left:12px, z-index:30, no-drag). The lens rule for sidebar buttons sets
+   position:relative on every button in the sidebar root, which outranks the stock
+   rule and drops this control back into the sidebar next to the logo. It carries
+   no lens anyway (the rule that hides ::before for icon buttons applies), so
+   restoring the harness positioning is all that is needed. */
+html[data-windows-titlebar] body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button[class*="_iconButton"][class*="_toggle"] {
+  position: fixed;
+}
+/* Interactive occupants opt out of the drag region, or they stop receiving
+   clicks. Empty stretches of the bar stay draggable. */
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header button,
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header a,
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header input,
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header select,
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header textarea,
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [role="button"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [role="tab"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [role="menuitem"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_titleCluster"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerUtilities"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerCorner"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) button,
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) a,
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [role="button"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [role="tab"] {
+  -webkit-app-region: no-drag;
+}
+/* The transcript only has to clear the band now: the bar no longer occupies a
+   row of its own. */
+html[data-windows-titlebar] body.dsh-lg-on [data-phase="active"] [data-conversation-scroll],
+html[data-windows-titlebar] body.dsh-lg-on div:has(> [data-conversation-scroll])[data-phase="active"] > [data-conversation-scroll] {
+  padding-top: var(--dsh-windows-titlebar-height, 40px);
+}
+/* Fullscreen: the caption buttons are gone, so the right clearance goes with
+   them (the harness zeroes --dsh-frame-chrome-top in the same state). The menubar
+   is a separately mounted always-on overlay, so the left clearance stays. */
+html[data-windows-titlebar][data-fullscreen] body.dsh-lg-on [data-slot="conversation.header"] > header,
+html[data-windows-titlebar][data-fullscreen] body.dsh-lg-on header:has([role="tablist"]) {
+  padding-right: 0;
+}
+body.dsh-lg-on [data-conversation-tabs] {
+  margin: 0;
+  padding-left: 0;
+  gap: 4px;
+}
+/* View tabs: small uniform buttons instead of the oversized glass capsules the
+   theme used to draw (pill radius + a lens ::before each 7px/18px of padding).
+   The selected and hover states use the same subtle tint as the rest of the
+   chrome, and the stock underline stays hidden, so the tint IS the state.
+   Dual anchor, as everywhere else on this bar. */
+body.dsh-lg-on [data-conversation-tabs] [role="tab"],
 body.dsh-lg-on header:has([role="tablist"]) [role="tab"] {
-  position: relative;
-  isolation: isolate;
-  border-radius: 999px;
-  padding: 7px 18px;
-  margin-bottom: 10px;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin-bottom: 0;
+  font-size: 13px;
+  line-height: 18px;
+  background: transparent;
   color: var(--dsw-alias-label-secondary);
 }
-body.dsh-lg-on header:has([role="tablist"]) [role="tab"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  z-index: -1;
-  -webkit-backdrop-filter: blur(12px) saturate(150%) url(#dsh-lg-edge-refraction);
-  backdrop-filter: blur(12px) saturate(150%) url(#dsh-lg-edge-refraction);
-  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 8%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.40),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-    inset 0 0 10px rgba(255, 255, 255, 0.08),
-    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.14),
-    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.14),
-    0 2px 10px rgba(0, 0, 0, 0.12);
-}
+body.dsh-lg-on [data-conversation-tabs] [role="tab"][aria-selected="true"],
 body.dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"] {
-  color: var(--dsw-alias-state-business-primary);
-}
-body.dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"]::before {
+  color: var(--dsw-alias-label-primary);
   background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 14%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.30),
-    inset 0 0 14px rgba(255, 255, 255, 0.14),
-    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.20),
-    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.20),
-    0 2px 12px rgba(0, 0, 0, 0.16);
 }
-body[data-ds-dark-theme].dsh-lg-on header:has([role="tablist"]) [role="tab"]::before {
+body.dsh-lg-on [data-conversation-tabs] [role="tab"]:not(:disabled):hover,
+body.dsh-lg-on header:has([role="tablist"]) [role="tab"]:not(:disabled):hover {
+  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 9%, transparent);
+}
+body[data-ds-dark-theme].dsh-lg-on [data-conversation-tabs] [role="tab"][aria-selected="true"],
+body[data-ds-dark-theme].dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 18%, transparent);
+}
+body[data-ds-dark-theme].dsh-lg-on [data-conversation-tabs] [role="tab"]:not(:disabled):hover,
+body[data-ds-dark-theme].dsh-lg-on header:has([role="tablist"]) [role="tab"]:not(:disabled):hover {
   background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 12%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
-    inset 0 0 10px rgba(255, 255, 255, 0.05),
-    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.08),
-    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.08),
-    0 2px 10px rgba(0, 0, 0, 0.30);
 }
-body[data-ds-dark-theme].dsh-lg-on header:has([role="tablist"]) [role="tab"][aria-selected="true"]::before {
-  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #333333) 16%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    inset 0 0 14px rgba(255, 255, 255, 0.08),
-    inset 2px 2px 6px 2px rgba(255, 255, 255, 0.12),
-    inset -2px -2px 4px -1px rgba(255, 255, 255, 0.12),
-    0 2px 12px rgba(0, 0, 0, 0.35);
-}
+body.dsh-lg-on [data-conversation-tabs] [role="tab"]::after,
 body.dsh-lg-on header:has([role="tablist"]) [role="tab"]::after {
   display: none;
 }
+/* Windows caption strip (desktop only). The layout frame paints a full-width
+   40px ::before as the WINDOW DRAG BAND, filled with --dsw-specific-sidebar-fill
+   (a flat translucent colour). Give that band the same gradient frost as the
+   conversation header: strong blur at the very top, fading out at its bottom
+   edge, so the wallpaper reads through it instead of a flat strip.
+   The frame is matched by its column child rather than by the hashed class alone.
+   Caveat: Electron ALSO draws a NATIVE caption overlay above the page using the
+   same token (the preload samples it and forwards it to setTitleBarOverlay), and
+   no CSS can blur a native overlay — a faint flat tint remains there. */
+html[data-windows-titlebar] [class*="_frame"]:has([class*="_sidebarCol"])::before {
+  background: transparent;
+  -webkit-backdrop-filter: blur(calc(var(--dsh-lg-blur, 24px) * 1.2)) saturate(160%);
+  backdrop-filter: blur(calc(var(--dsh-lg-blur, 24px) * 1.2)) saturate(160%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 30%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 30%, transparent 100%);
+}
 /* General hover effect for interactive elements: highlight edge, floating
-   shadow, subtle lift, and brightness increase. */
-body.dsh-lg-on button:not(:disabled):hover,
-body.dsh-lg-on a:not(:disabled):hover,
-body.dsh-lg-on [role="button"]:not(:disabled):hover,
-body.dsh-lg-on [role="tab"]:not(:disabled):hover,
-body.dsh-lg-on [role="menuitem"]:not(:disabled):hover,
-body.dsh-lg-on [role="link"]:not(:disabled):hover {
+   shadow, subtle lift, and brightness increase.
+   Deliberately NARROW: it only covers the surfaces this theme restyles (the
+   composer card, the queue dock, dialogs/menus, the conversation view tabs and
+   the sidebar). A blanket button / a / [role=button] / [role=menuitem] /
+   [role=link] selector reached into every other plugin's controls too, so it
+   fought other themes over transforms and shadows; keep the list scoped. */
+body.dsh-lg-on [data-composer-card] button:not(:disabled):hover,
+body.dsh-lg-on [data-queue-dock] button:not(:disabled):hover,
+body.dsh-lg-on [role="dialog"] button:not(:disabled):hover,
+body.dsh-lg-on [role="dialog"] a:not(:disabled):hover,
+body.dsh-lg-on [data-conversation-tabs] [role="tab"]:not(:disabled):hover,
+body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:not(:disabled):hover {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.10);
   transform: translateY(-1px);
   filter: brightness(1.15);
 }
-body[data-ds-dark-theme].dsh-lg-on button:not(:disabled):hover,
-body[data-ds-dark-theme].dsh-lg-on a:not(:disabled):hover,
-body[data-ds-dark-theme].dsh-lg-on [role="button"]:not(:disabled):hover,
-body[data-ds-dark-theme].dsh-lg-on [role="tab"]:not(:disabled):hover,
-body[data-ds-dark-theme].dsh-lg-on [role="menuitem"]:not(:disabled):hover,
-body[data-ds-dark-theme].dsh-lg-on [role="link"]:not(:disabled):hover {
+body[data-ds-dark-theme].dsh-lg-on [data-composer-card] button:not(:disabled):hover,
+body[data-ds-dark-theme].dsh-lg-on [data-queue-dock] button:not(:disabled):hover,
+body[data-ds-dark-theme].dsh-lg-on [role="dialog"] button:not(:disabled):hover,
+body[data-ds-dark-theme].dsh-lg-on [role="dialog"] a:not(:disabled):hover,
+body[data-ds-dark-theme].dsh-lg-on [data-conversation-tabs] [role="tab"]:not(:disabled):hover,
+body[data-ds-dark-theme].dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:not(:disabled):hover {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.10), 0 4px 12px rgba(0, 0, 0, 0.18);
   filter: brightness(1.20);
 }
@@ -731,152 +1008,6 @@ body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) svg[aria-hidden="true"
 }
 body.dsh-lg-on [class*="_root"]:has([class*="_treeBody"]) button:has(svg[aria-hidden="true"])::before {
   display: none !important;
-}
-/* Model selector popup: FULL-SCREEN.
-   Gated on :has(.scrollable) so this FULL-SCREEN treatment only applies to the
-   model/effort selector menu (which renders a .scrollable pane). The access-mode
-   dropdown in the composer modes row is also [role="menu"] but has no
-   .scrollable; leaving it a normal small dropdown instead of a fullscreen
-   overlay. */
-body.dsh-lg-on [data-composer-card] [role="menu"]:has(.scrollable) {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 1000 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-}
-body.dsh-lg-on [data-composer-card] [role="menu"]:has(.scrollable)::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: rgba(0, 0, 0, 0.30);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"]:has(.scrollable)::before {
-  background: rgba(0, 0, 0, 0.55);
-}
-/* The inner scrollable groups container: centered frosted-glass panel. */
-body.dsh-lg-on [data-composer-card] [role="menu"] .scrollable {
-  max-width: 600px !important;
-  max-height: min(80vh, 680px) !important;
-  width: 92vw !important;
-  margin: 0 auto !important;
-  border-radius: 16px !important;
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  backdrop-filter: blur(28px) saturate(160%);
-  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 78%, transparent) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-    0 24px 60px rgba(0, 0, 0, 0.35);
-  overflow-y: auto !important;
-}
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"] .scrollable {
-  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #2a2a2a) 84%, transparent) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
-    0 24px 60px rgba(0, 0, 0, 0.55);
-}
-/* The root pane (Model / Effort cells): centered frosted glass card. */
-body.dsh-lg-on [data-composer-card] [role="menu"] > :first-child:not(.scrollable) {
-  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 82%, transparent) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  backdrop-filter: blur(28px) saturate(160%);
-  border-radius: 16px !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-    0 24px 60px rgba(0, 0, 0, 0.35);
-  width: 280px !important;
-  overflow: hidden !important;
-}
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"] > :first-child:not(.scrollable) {
-  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #2a2a2a) 86%, transparent) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
-    0 24px 60px rgba(0, 0, 0, 0.55);
-}
-/* Root pane cells (Model / Effort buttons): glass-styled menu rows. */
-body.dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitem"] {
-  background: transparent !important;
-  border-radius: 8px !important;
-  margin: 2px 6px !important;
-  padding: 10px 12px !important;
-  color: var(--dsw-alias-label-primary) !important;
-  transition: background 0.15s !important;
-}
-body.dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitem"]:hover {
-  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 20%, transparent) !important;
-}
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitem"]:hover {
-  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #2a2a2a) 30%, transparent) !important;
-}
-/* Provider group headings inside the full-screen picker. The actual DOM uses
-   a plain div with class _7KE1Ra_groupTitle (no role="presentation"), so we
-   target the first child div inside each [role="group"] section. */
-body.dsh-lg-on [data-composer-card] [role="menu"] [role="group"] > div:first-child {
-  padding: 14px 18px 6px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
-  color: var(--dsw-alias-brand-primary) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  font-size: 13px !important;
-}
-/* Model option items (role="menuitemradio"): glass styling with hover state. */
-body.dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitemradio"] {
-  border-radius: 8px !important;
-  margin: 1px 6px !important;
-  padding: 8px 12px !important;
-  transition: background 0.15s !important;
-  background: transparent !important;
-}
-body.dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitemradio"]:hover {
-  background: color-mix(in srgb, var(--dsh-lg-tint, #ffffff) 18%, transparent) !important;
-}
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitemradio"]:hover {
-  background: color-mix(in srgb, var(--dsh-lg-tint-dark, #2a2a2a) 26%, transparent) !important;
-}
-/* Selected model option: accent highlight. */
-body.dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitemradio"][aria-checked="true"] {
-  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent) !important;
-}
-body[data-ds-dark-theme].dsh-lg-on [data-composer-card] [role="menu"] button[role="menuitemradio"][aria-checked="true"] {
-  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent) !important;
-}
-/* Two-column grid for model items in the full-screen model list. Each provider
-   group ([role="group"]) becomes a grid; the title div spans both columns. */
-body.dsh-lg-on [data-composer-card] [role="menu"] .scrollable [role="group"] {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 2px !important;
-  padding: 0 10px 6px !important;
-}
-body.dsh-lg-on [data-composer-card] [role="menu"] .scrollable [role="group"] > div:first-child {
-  grid-column: 1 / -1 !important;
-  padding: 14px 8px 4px !important;
-}
-/* Click-to-dismiss: cursor pointer on the backdrop, default cursor on the panel. */
-body.dsh-lg-on [data-composer-card] [role="menu"] {
-  cursor: pointer;
-}
-body.dsh-lg-on [data-composer-card] [role="menu"] .scrollable {
-  cursor: default;
 }
 /* Access-mode dropdown glass (see EDGE note below). */
 body.dsh-lg-on [data-composer-card] [role="menu"]:not(:has(.scrollable)) {
@@ -1499,6 +1630,60 @@ export function apply(ctx: ClientContext): void {
   }
 }
 
+/** Slot the desktop conversation header exposes for extra utility controls. */
+const HEADER_UTILITIES_SLOT = 'conversation.session.header.utilities';
+
+/**
+ * Fullscreen toggle contributed to the conversation header.
+ *
+ * The desktop build ships no fullscreen entry point of its own: the frameless
+ * caption only offers minimize/maximize/close, the Windows application menu
+ * carries just `toggleDevTools` (F12) with no `togglefullscreen` role, and the
+ * main process never calls `setFullScreen(true)`. Its window is still
+ * fullscreenable and the preload mirrors the OS state onto
+ * `<html data-fullscreen>`, so the app's own fullscreen-aware layout kicks in as
+ * soon as the DOCUMENT goes fullscreen — which is exactly what this button asks
+ * for through the Fullscreen API.
+ */
+function FullscreenToggle(): JSX.Element {
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    const sync = (): void => setActive(document.fullscreenElement !== null);
+    sync();
+    document.addEventListener('fullscreenchange', sync);
+    return () => document.removeEventListener('fullscreenchange', sync);
+  }, []);
+  const toggle = useCallback(() => {
+    const request = document.fullscreenElement === null
+      ? document.documentElement.requestFullscreen()
+      : document.exitFullscreen();
+    // A rejected request (no user gesture, unsupported surface) must not bubble
+    // out of the click handler as an unhandled rejection.
+    void request?.catch?.(() => undefined);
+  }, []);
+  const label = active ? '退出全屏' : '全屏';
+  return (
+    <button
+      type="button"
+      className="dsh-lg-fullscreen-toggle"
+      onClick={toggle}
+      aria-pressed={active}
+      title={label}
+      aria-label={label}
+    >
+      {active ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M9 4v5H4M15 20v-5h5M4 15h5v5M20 9h-5V4" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function applyCore(ctx: ClientContext): void {
   const client = ctx as unknown as ClientServices;
 
@@ -1528,90 +1713,6 @@ function applyCore(ctx: ClientContext): void {
   // through the theme service itself).
   const offThemeChange = client.on?.('theme/change', () => safe('theme-change scrim', () => applier?.refreshScrim()));
   client.effect(() => offThemeChange, 'liquid-glass: theme-change scrim');
-
-  // Model menu behaviour: clicking the composer model selector opens a two-pane
-  // menu (a "root" pane all-in-one list, then a model list). Users asked to skip
-  // the intermediate root pane and jump straight to the model list, render it in
-  // two columns (see SHEET), and dismiss it by clicking empty space.
-  // Implementation: a MutationObserver watches for the full-screen model menu
-  // to appear; while the root pane (first child, not .scrollable) is visible we
-  // programmatically click its "模型/Model" menuitem to advance to the model
-  // list. A capture-phase click listener dismisses the menu when the backdrop
-  // (the menu container itself) is clicked. Everything is gated on the theme
-  // being enabled and retracted on dispose.
-  client.effect(() => {
-    let observer: MutationObserver | undefined;
-    const navigate = (): void => {
-      if (!document.body.classList.contains('dsh-lg-on')) return;
-      const menu = document.querySelector<HTMLElement>('[data-composer-card] [role="menu"]');
-      if (!menu) return;
-      // ONLY drive the FULL-SCREEN model/effort selector: it renders .scrollable
-      // and was styled position:fixed. Other [role="menu"] popovers inside the
-      // composer card — e.g. the access-mode dropdown (no .scrollable, default
-      // positioning) — must keep their own normal interaction and not be
-      // auto-navigated or auto-clicked here.
-      if (getComputedStyle(menu).position !== 'fixed') return;
-      // Already looking at the model list? Do nothing.
-      const scrollable = menu.querySelector('.scrollable');
-      if (scrollable && getComputedStyle(scrollable).display !== 'none') return;
-      // Root pane visible (first child that isn't .scrollable), and actually
-      // being shown → find and click the "Model" cell. Guard against duplicate
-      // dispatches with a transient flag so React state settles.
-      const rootPane = Array.from(menu.children).find(
-        (n) => !(n instanceof HTMLElement) || !n.classList.contains('scrollable'),
-      ) as HTMLElement | undefined;
-      if (!rootPane) return;
-      const style = getComputedStyle(rootPane);
-      if (style.display === 'none' || style.visibility === 'hidden') return;
-      if (rootPane.dataset.lgSkipHandled === '1') return;
-      rootPane.dataset.lgSkipHandled = '1';
-      const cells = Array.from(rootPane.querySelectorAll<HTMLElement>('button[role="menuitem"]'));
-      const modelCell = cells.find((b) => /模型|model/i.test(b.textContent ?? '')) ?? cells[0];
-      if (!modelCell) {
-        // Nothing clickable yet — clear the flag so a later pass can retry.
-        delete rootPane.dataset.lgSkipHandled;
-        return;
-      }
-      // Defer so the menu has settled into the DOM before we click it.
-      requestAnimationFrame(() => {
-        try {
-          modelCell.click();
-        } catch {
-          /* the cell may have been removed already */
-        } finally {
-          delete rootPane.dataset.lgSkipHandled;
-        }
-      });
-    };
-
-    // Catch the menu being added/removed, and re-run once after React settles.
-    observer = new MutationObserver(() => {
-      navigate();
-      requestAnimationFrame(() => navigate());
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Click empty area → dismiss. The full-screen menu is display:flex centering
-    // its panels; a click whose target is the menu container itself (the backdrop
-    // area outside the panels) closes it with an Escape key event.
-    const dismiss = (e: MouseEvent): void => {
-      if (!document.body.classList.contains('dsh-lg-on')) return;
-      const menu = document.querySelector<HTMLElement>('[data-composer-card] [role="menu"]');
-      if (!menu || !menu.isConnected) return;
-      // Only the full-screen model selector dismisses on backdrop click; a
-      // normal small dropdown (access mode) must not be force-closed.
-      if (getComputedStyle(menu).position !== 'fixed') return;
-      const target = e.target as Node;
-      if (target !== menu) return;
-      menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    };
-    document.addEventListener('click', dismiss, true);
-
-    return () => {
-      observer?.disconnect();
-      document.removeEventListener('click', dismiss, true);
-    };
-  }, 'liquid-glass: model menu behaviour');
 
   // Water-drop settings icon. The settings shell picks a nav glyph per section
   // id via a HARD-CODED map (see `navIcon` in dsh-client-ui-settings-general):
@@ -1712,6 +1813,20 @@ function applyCore(ctx: ClientContext): void {
             inject: injected,
           },
           LiquidGlassPanel,
+        ),
+      );
+    });
+
+    // Fullscreen toggle in the conversation header. Contributed through the
+    // header's own utilities slot (the same seat as the "open in…" dropdown), so
+    // it is React-managed and disappears with the fiber — no DOM surgery. The
+    // slot only exists on surfaces that render that header, and `inject` simply
+    // never fires elsewhere.
+    safe('fullscreen toggle registration', () => {
+      client.slots!.inject(HEADER_UTILITIES_SLOT, () =>
+        client.slots!.register(
+          { name: HEADER_UTILITIES_SLOT, id: 'liquid-glass-fullscreen', order: 90 },
+          FullscreenToggle as never,
         ),
       );
     });

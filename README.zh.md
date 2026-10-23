@@ -1,194 +1,215 @@
-# dsh-theme-liquid-glass
+# Liquid Glass — DeepSeek Harness 主题
 
-**DeepSeek Harness Web UI 的纯正液态玻璃主题。**
+[README.md](README.md) · **简体中文**
 
-<p align="center">
-  <strong>
-    <a href="./README.md">English</a>
-  </strong>
-</p>
+把 DeepSeek Harness 的界面整体换成磨砂玻璃：你真正会去点的控件带有**真实的 SVG 边缘折射**，
+壁纸可以自己选，而**顶部会话栏直接住进系统标题栏**，不再单独占掉一行。
 
-一套完整的磨砂玻璃皮肤：SVG 边缘折射、可自定义的动态壁纸、玻璃透镜质感按钮、
-重新设计的全屏模型选择器，以及专属的水滴设置图标。
-
-> **v0.4.2** — 需要 **DeepSeek Harness ≥ `0.1.2-rc.1`**。本版本适配 harness 的客户端包拆分：
-> 已被移除的 `@deepseek-ai/dsh-client-runtime` 的 store 部分迁移到了
-> `@deepseek-ai/dsh-client-store`。详见 [CHANGELOG.md](CHANGELOG.md)。
+![新会话页 + 内置动态壁纸](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png)
 
 ---
 
-## 功能特性
-
-### 液态玻璃界面
-- **SVG 边缘折射** · 通过 `feDisplacementMap` 在输入卡片、发送按钮、消息气泡、
-  视图标签、队列坞、侧边栏按钮上实现边缘折射效果。强度可通过滑块调节。
-- **磨砂玻璃质感** · 用 token 覆盖（`ctx.theme.overrideTokens`）把 `--dsw-alias-*`
-  语义 token 替换为半透明玻璃质感值。玻璃参数由 `body` 上的 `--dsh-lg-*` 自定义
-  属性驱动，改动即时生效。
-- **玻璃透镜按钮** · 发送、视图标签、侧边栏操作、命令 `(+)` 按钮全部采用玻璃
-  材质 + 边缘折射。
-- **水滴设置图标** · 设置导航中的齿轮被水滴图标取代，一眼可辨。
-- **悬浮高亮** · 所有可交互元素在悬停时呈现细微光晕与抬起效果。
-
-### 壁纸与背景
-- **自定义背景模糊与亮度** · 独立控制壁纸模糊（`bgBlur`）与亮度（`brightness`），
-  让背景在玻璃之下呈现最佳效果。
-- **内置动态演示壁纸** · 开箱即用的色块壁纸，可通过速度、色块数量、颜色变化、
-  模糊、透明度调节。
-- **多种壁纸来源** · 网页链接（iframe，可选 host 代理）、本地 HTML、本地图片、
-  本地视频。
-
-### 模型选择器
-- **重新设计的模型选择器** · 全屏毛玻璃选择器，provider 分组网格布局 + 悬停
-  高亮——跳过中间根面板，直达模型列表。
-
-### 设置页
-- 独立的顶层 **「液态玻璃」** 页面（`settings.section`，与 通用设置 / 模型 /
-  插件 并列），分「页面背景」「输入卡片 · 磨砂玻璃」两组。所有改动实时生效，
-  「恢复默认」一键还原。
-- **一键关闭** · 主开关会同时撤掉全部 token 覆盖、移除壁纸、关闭所有磨砂/透镜
-  规则——所有视觉都挂在 `body.dsh-lg-on` 门控 class 上，关闭即零残留。
-
-### 实现要点
-- 磨砂用 `filter: blur()` 打在独立背景层上（`inset: -48px` 留出出血），**绝不**
-  用 `#root` 上的 `backdrop-filter`——非 none 的 backdrop-filter 会让 `#root`
-  成为所有 `position: fixed` 后代的包含块（菜单、弹层、toast 会被重新锚定）。
+> ## ⚠️ 请尽量使用**深色模式**
+>
+> 这个主题是为深色模式设计的，也只有深色模式下观感是对的。它的核心是**半透明玻璃叠在壁纸上** ——
+> 在**浅色模式**下，明亮的壁纸会让玻璃发白、上面的文字发灰难读。
+>
+> 主题已经把浅色模式的次级 / 三级灰阶压深来挽回一些对比度，但那是缓解、不是解决。
+> **如果你用浅色模式，请预期可读性会变差**；把 DSH 切到深色模式即可彻底解决。
 
 ---
 
-## 目录结构
+## 你会得到什么
 
+### 桌面版专属
+
+- **顶部会话栏就是标题栏。** DSH 自己的顶栏把「对话 / 轨迹」放在第二行，整条 76px 高。
+  主题把整条栏搬进 40px 的系统标题栏 —— 和「应用菜单 / 编辑」以及窗口按钮同一行 ——
+  并压成单行。**那 48px 垂直空间就还给你了**：消息区从离顶 40px 开始而不是 56px；
+  标签也从过大的玻璃胶囊改成小圆角按钮。
+- **全屏按钮。** DSH 桌面版**完全没有**全屏入口 —— 无边框标题栏只有最小化 / 最大化 / 关闭，
+  没有注册 F11 或 `togglefullscreen`，主进程也从不调用 `setFullScreen(true)`。
+  主题在顶栏补了一个 28px 按钮，点击请求整页全屏、再点退出，图标随状态切换；
+  之后 DSH 自己的全屏适配会接管布局。
+- **系统标题栏那条也做成了渐变磨砂**（顶部强模糊、向下渐隐），不再是平铺的半透明色带。
+- **原来透明的浮层补上了底色**：选择对话框（DSH 让你做选择时弹出的那个面板）、
+  「已编辑 N 个文件」卡片里鼠标悬浮时的文件预览、该卡片本身、
+  以及对话流里的一问一答回执气泡 —— 各自补上模糊 + 可读浓度的玻璃底色。
+- **浅色模式文字更可读**（在上方提醒的限度内）：次级 / 三级 / 说明文字的灰阶各压深一到两档。
+
+### 玻璃本身
+
+- **真实边缘折射，不只是模糊。** 用 `feDisplacementMap` 在表面边缘弯折背后的画面，
+  和厚玻璃一样。作用在输入卡片、发送按钮、消息气泡、队列坞、对话框、菜单和侧边栏按钮上。
+  **强度是一个滑块** —— 0 关掉，1 是完整透镜。
+- **所有玻璃参数都归你调**：玻璃色调、色调不透明度、玻璃材质亮度、磨砂模糊半径、
+  边缘折射强度、代码块不透明度。全部**实时生效**，不用刷新、不用重启。
+- **玻璃透镜按钮**，以及取代原版齿轮的**水滴设置图标**。
+
+### 壁纸
+
+- **六种来源**：不设、网页链接（iframe，可选走宿主代理以绕过 `X-Frame-Options`）、
+  本地 HTML、本地图片、本地视频，或者**开箱即用的内置动态演示壁纸**。
+- **背景独立可调**：壁纸模糊与壁纸亮度**独立于**卡片的磨砂，所以背景可以柔、玻璃可以利。
+- **演示壁纸可调**：速度、色块数量、颜色变化、色块模糊、不透明度，外加背景渐变铺色开关。
+
+### 其它
+
+- **单行顶栏**（网页版同样生效）：侧栏开关 → 会话标题 → 标签 → 「打开方式」下拉 →
+  右侧栏开关，全在一行。
+- **不跟别的插件抢样式。** 模型选择列表**保持 DSH 原版**（早期版本改造过它，
+  结果和其他主题插件互相覆盖），悬停高亮也刻意只作用于本主题真正改过的表面。
+- **独立设置页**：Settings → **Liquid Glass**（与「通用设置 / 模型 / 插件」并列），
+  实时预览、一键恢复默认。
+- **干净的总开关**：所有视觉都挂在一个 class 上，关闭时一次性撤掉全部 token 覆盖、
+  移除壁纸、关掉所有磨砂与透镜规则，不留残留。
+
+---
+
+## 截图
+
+| | |
+|---|---|
+| ![新会话页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png) | ![输入卡片边缘折射](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.png) |
+| 新会话页 + 内置动态壁纸 | 输入卡片的边缘折射特写 |
+| ![对话界面](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.png) | ![设置页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.png) |
+| 玻璃气泡的对话 + 合并后的顶部栏 | Liquid Glass 设置页 |
+
+---
+
+## 安装
+
+### 桌面版
+
+桌面版用的是自己的 profile，名字是 `desktop`，由桌面应用首次启动时创建，
+所以**安装前需要完全退出桌面版**：
+
+```powershell
+dsh plugin --profile desktop add dsh-theme-liquid-glass
 ```
-src/index.ts          host 半区：壁纸文件路由 + 文件上传 + 网页代理
-src/client/index.ts   browser 半区：token 层 + 背景图层 + 玻璃参数 + 设置页
-src/shared.ts         常量与设置类型（无运行时依赖）
-build.mjs             swc 构建（lib/index.js + lib/client.js 加载器格式）
-```
 
----
+然后再启动应用。
 
-## 安装到 web profile
-
-### 方式一：从 npm 安装（推荐）
+### 网页版
 
 ```bash
 dsh plugin add --profile web dsh-theme-liquid-glass
 ```
 
-刷新浏览器即可生效。
+然后刷新浏览器。
 
-> **兼容性**：需要 DeepSeek Harness **≥ `0.1.2-rc.1`**。更早的 harness 版本使用
-> 已移除的 `dsh-client-runtime` 包，v0.4.0 不再支持。
+> **兼容性** —— 需要 DeepSeek Harness **≥ `0.1.2-rc.1`**，并支持 **0.2.x** 运行时
+> （桌面版用的就是它）。网页版与桌面版共用同一份客户端产物：上面所有功能两边都有，
+> 仅桌面版生效的已单独标注。低于 `0.1.2-rc.1` 的版本不支持。
 
-### 方式二：本地开发链接
+### 从源码安装
 
-用 **Windows junction** 把源码目录链接进 profile 的 `node_modules`
-（直接 `dsh plugin add "<绝对路径>"` 可能生成坏相对符号链接，并把该插件从
-profile 的 `bundles` 列表里移除）：
+```bash
+git clone https://github.com/FAVKTOXIC/dsh-theme-liquid-glass
+cd dsh-theme-liquid-glass
+npm install
+npm run build
+```
+
+再把目录链进 profile。Windows 上请用 junction —— 直接用
+`dsh plugin add "<绝对路径>"` 可能生成坏的相对符号链接，并把插件从 profile 的
+`bundles` 列表里丢掉：
 
 ```powershell
-# 1) 移除残留条目
 dsh plugin remove --profile web dsh-theme-liquid-glass
-
-# 2) 用 junction 指向源码目录
 New-Item -ItemType Junction -Path "$env:USERPROFILE\.dsh\profiles\web\node_modules\dsh-theme-liquid-glass" `
-  -Target "<源码目录绝对路径>" -Force
-
-# 3) 确保主题出现在 profile bundles
+  -Target "<主题源码的绝对路径>" -Force
 dsh plugin add --profile web dsh-theme-liquid-glass
 ```
 
-刷新浏览器即可生效。
+---
 
-> **改代码后**：重新构建，然后刷新。
-> ```bash
-> cd <源码目录>
-> node build.mjs
-> ```
-> **client 改动**（设置页 UI、玻璃参数）构建后刷新即可生效；
-> **host 改动**（路由、上传端点）需要重启 `dsh web` 重新加载 host 半区。
+## 设置项
+
+**Liquid Glass** 页（Settings → Liquid Glass）分两组：*页面背景* 与 *输入卡片 · 磨砂玻璃*。
+
+| 设置 | 作用 | 范围 |
+| --- | --- | --- |
+| `enabled` | 总开关 —— 关闭即撤掉所有视觉改动 | 开 / 关 |
+| `wallpaper.kind` | 壁纸来源 | `none` / `url` / `html` / `image` / `video` / `local` |
+| `wallpaper.value` | 链接，或相对于壁纸目录的路径 | 文本 |
+| `wallpaper.proxy` | 让网页链接走宿主代理（绕过 `X-Frame-Options`） | 开 / 关 |
+| `wallpaper.muted` | 视频壁纸静音（自动播放策略会拦未静音） | 开 / 关 |
+| `demo.speed` | 演示壁纸动画速度 | 0.1 – 4 |
+| `demo.blobs` | 演示壁纸色块数量 | 1 – 6 |
+| `demo.colorCycle` | 演示壁纸颜色变化（0 = 静止） | 0 – 10 |
+| `demo.blur` | 演示壁纸色块模糊 | 10 – 140px |
+| `demo.opacity` | 演示壁纸色块不透明度 | 0.2 – 1 |
+| `demo.wash` | 演示壁纸背景渐变铺色 | 开 / 关 |
+| `glass.frosted` | 卡片 / 气泡 / 队列坞的磨砂（backdrop blur） | 开 / 关 |
+| `glass.blur` | 磨砂模糊半径 | 0 – 60px |
+| `glass.bgBlur` | 壁纸模糊，独立于卡片磨砂 | 0 – 60px |
+| `glass.refraction` | 边缘折射强度 | 0 – 1 |
+| `glass.tint` | 玻璃色调 | 十六进制色值 |
+| `glass.tintOpacity` | 玻璃色调不透明度 | 0 – 1 |
+| `glass.glassBrightness` | 色调的材质亮度 | 0.2 – 1.6 |
+| `glass.brightness` | 壁纸亮度 | 0.2 – 1.6 |
+| `glass.codeBlockOpacity` | 代码块底色不透明度，独立于色调 | 0.2 – 1 |
+| `glass.toolTextColor` | 工具调用文字颜色（留空 = 默认） | 十六进制色值 |
+
+设置存在 `localStorage` 的 `dsh-liquid-glass.settings` 下，因此是**按浏览器**的 ——
+换浏览器或清掉站点数据就会回到默认值。原因见下方「为什么用 localStorage」。
 
 ---
 
-## 构建
+## 兼容性与刻意的取舍
+
+| | |
+| --- | --- |
+| Harness | `≥ 0.1.2-rc.1`，含 `0.2.x` 桌面版运行时 |
+| 生效范围 | 网页版与桌面版（同一份客户端产物） |
+| peer 依赖 | 五个 `@deepseek-ai/dsh-client-*`，声明为**可选** peer，范围 `^0.1.2-rc.1 \|\| ^0.2.0-0` |
+| 模型选择列表 | **交还 DSH**。早期版本改造过它，但其他主题插件也改同一个菜单、双方互相覆盖，因此撤回 |
+| 悬停样式 | 只作用于输入卡片、队列坞、对话框 / 菜单、视图标签、侧边栏 —— 不会去改别的插件的控件 |
+| 浅色模式 | 可用，但玻璃会发白 —— 见页首提醒 |
+| 设置存储 | `localStorage`（按浏览器） |
+
+---
+
+## 开发
 
 ```bash
 npm install
-npm run build        # 一次性构建（lib/index.js + lib/client.js）
-npm run watch        # watch 模式（配合 client-hmr 热替换）
-npm run dev          # 构建 + 冒烟测试
-npm test             # 运行客户端冒烟测试
-npm run typecheck    # tsc --noEmit
+npm run build      # 一次性构建 → lib/index.js + lib/client.js
+npm run watch      # 监听模式（配合 client HMR）
+npm run dev        # 构建 + smoke test
+npm test           # 客户端 smoke test
+npm run typecheck  # tsc --noEmit
 ```
 
----
+```
+src/index.ts           宿主半：壁纸文件路由、上传端点、网页代理
+src/client/index.tsx   客户端半：token 覆盖、背景层、玻璃参数、设置面板
+src/shared.ts          共享设置类型与常量（无运行时依赖）
+build.mjs              SWC 构建流水线 → loader 格式产物
+test/client.smoke.mjs  smoke test：DOM + CSS + 注册断言
+```
 
-## 客户端注入说明
+### 读源码前值得知道的几件事
 
-client 半区必须导出 `inject` 数组（**服务名**）：`['slots','locale','theme']`
-（与已发布的 dsh-ui-appearance / dsh-dream-skin 插件一致）。client loader 用
-它构建 fiber 注入表，缺失会导致 `cannot get property X without inject` 并让
-整个 web boot fail-loud。`apply()` 整体有 try/catch 兜底——运行时错误只降级，
-不会把 GUI 带崩。
+- **磨砂绝不用 `#root` 上的 `backdrop-filter`。** 非 `none` 的 `backdrop-filter` 会让该元素
+  成为所有 `position: fixed` 后代的包含块，菜单、弹层、toast 都会被重新锚定。
+  因此磨砂要么走独立的背景层，要么走 `::before` 伪元素。
+- **整个样式表是一个模板字符串。** 所有规则都在 `src/client/index.tsx` 的
+  `const SHEET = ...` 里，CSS 注释里混进一个反引号就会提前结束模板；`build.mjs` 里有守卫。
+- **选择器锚在 harness 自己的稳定属性上** —— `data-slot`、`role`、`data-conversation-scroll`
+  之类；CSS Module 的类名是构建期哈希，只用逻辑后缀匹配（`[class*="_bubble"]`），从不写全名。
+- **凡是 harness 在 0.1.x 与 0.2.x 之间改过结构的地方，规则都带双锚点**
+  （例如会话顶栏、消息气泡），所以一份产物同时服务两个运行时。
 
----
+### 为什么用 localStorage
 
-## 持久化说明（为什么用 localStorage）
-
-设置保存在浏览器 `localStorage`（键 `dsh-liquid-glass.settings`），**不走**
-settings RPC：harness 的 settings 网关只对浏览器客户端暴露**硬编码的产品
-命名空间**，第三方命名空间即使 host 半区注册了也不会送达客户端 scope
-（客户端会一直停在 `loading`）。已发布的 dsh-ui-appearance / dsh-dream-skin
-插件都遇到同一堵墙，并都选择了 localStorage。
-
-**代价**：设置跟随浏览器——换浏览器或清站点数据会丢失。
-
----
-
-## 设置项参考
-
-| 字段 | 说明 |
-| --- | --- |
-| `enabled` | 总开关 |
-| `wallpaper.kind` | `none` / `url` / `html` / `image` / `video` / `local` |
-| `wallpaper.value` | 网页链接或 wallpapers 目录下的相对路径 |
-| `wallpaper.proxy` | 网页链接走 host 代理（绕过 X-Frame-Options） |
-| `wallpaper.muted` | 视频壁纸静音（默认 true；取消静音可能被自动播放策略阻止） |
-| `demo.speed` | demo.html 动画速度倍率 0.1–4（步进 0.1） |
-| `demo.blobs` | demo.html 色块数量 1–6 |
-| `demo.colorCycle` | demo.html 颜色变化 0–10（0=静态） |
-| `demo.blur` | demo.html 色块模糊 10–140px |
-| `demo.opacity` | demo.html 色块不透明度 0.2–1 |
-| `demo.wash` | demo.html 背景渐变流动开关 |
-| `glass.frosted` | 磨砂开关（输入卡片/气泡/队列坞 backdrop 模糊） |
-| `glass.blur` | 输入卡片磨砂强度 0–60px |
-| `glass.bgBlur` | 背景壁纸独立模糊 0–60px（与卡片磨砂解耦） |
-| `glass.refraction` | 边缘折射 0–1 |
-| `glass.tint` | 玻璃颜色 |
-| `glass.tintOpacity` | 玻璃颜色不透明度 0–1 |
-| `glass.toolTextColor` | 操作文字颜色（十六进制，空=默认） |
-| `glass.codeBlockOpacity` | 代码块背景不透明度 0.2–1（独立于玻璃颜色不透明度） |
-| `glass.glassBrightness` | 玻璃材质亮度 0.2–1.6（tint 明度缩放，>1 变亮 <1 变暗） |
-| `glass.brightness` | 背景亮度 0.2–1.6 |
+harness 的设置网关只对浏览器端开放硬编码的产品命名空间，第三方命名空间即使宿主半注册了
+也会永远停在 `loading`。官方自带的 appearance / skin 插件撞的是同一堵墙，也都用了
+`localStorage`。代价是设置不会跟着你在浏览器之间走。
 
 ---
 
-## 首次启动
-
-插件首次启用时，会检查 `<DSH_HOME>/wallpapers` 下是否存在 `demo.html`。
-若不存在，会自动写入内置默认演示壁纸（已有文件不会被覆盖）。默认路径为
-`$DSH_HOME/wallpapers/demo.html`；壁纸目录可通过 `wallpaperDir` 配置项修改。
-
----
-
-## 预览
-
-![输入卡片边缘折射](assets/screenshots/screenshot-input.png)
-![液态玻璃气泡聊天界面](assets/screenshots/screenshot-chat.png)
-![设置面板](assets/screenshots/screenshot-settings.png)
-
----
-
-## 许可证
+## 许可
 
 [MIT](LICENSE)

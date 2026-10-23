@@ -1,7 +1,7 @@
 {
     "name": "dsh-theme-liquid-glass",
-    "version": "0.4.2",
-    "description": "Genuine Liquid Glass theme for DSH Web UI: SVG feDisplacementMap edge refraction on input card, send button, bubbles, view tabs, queue dock and sidebar. Built-in animated demo wallpaper, customizable background blur & brightness, redesigned model selector popup, glass-styled buttons, and a unique water-drop settings icon.",
+    "version": "0.5.0",
+    "description": "Liquid-glass theme for DeepSeek Harness (web GUI and desktop app): SVG edge refraction on the composer, bubbles, dock, menus and sidebar; translucent token overrides driven by live sliders; custom or built-in animated wallpapers; and desktop chrome extras such as the session bar merged into the system title bar and a fullscreen button.",
     "type": "module",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -51,13 +51,17 @@
     },
     "keywords": [
         "deepseek-harness",
+        "deepseek-harness-desktop",
         "dsh",
         "dsh-plugin",
+        "dsh-theme",
         "plugin",
         "theme",
         "liquid-glass",
+        "frosted-glass",
         "glass",
         "wallpaper",
+        "desktop",
         "web-ui"
     ],
     "engines": {
@@ -78,11 +82,11 @@
     "peerDependencies": {
         "react": "^18.2.0",
         "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-client-store": "^0.1.2-rc.1",
-        "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6",
-        "@deepseek-ai/dsh-client-ui-theme": "^0.1.0-rc.6",
-        "@deepseek-ai/dsh-client-ui-settings": "^0.1.0-rc.6",
-        "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6"
+        "@deepseek-ai/dsh-client-store": "^0.1.2-rc.1 || ^0.2.0-0",
+        "@deepseek-ai/dsh-client-locale": "^0.1.2-rc.1 || ^0.2.0-0",
+        "@deepseek-ai/dsh-client-ui-theme": "^0.1.2-rc.1 || ^0.2.0-0",
+        "@deepseek-ai/dsh-client-ui-settings": "^0.1.2-rc.1 || ^0.2.0-0",
+        "@deepseek-ai/dsh-client-ui-slots": "^0.1.2-rc.1 || ^0.2.0-0"
     },
     "peerDependenciesMeta": {
         "@deepseek-ai/cordis": {

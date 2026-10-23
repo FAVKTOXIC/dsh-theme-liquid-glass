@@ -77,9 +77,19 @@ eval(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'));
 if (!entry) throw new Error('bundle did not call __ModuleLoader__.load');
 if (entry.id !== 'dsh-theme-liquid-glass') throw new Error(`unexpected bundle id ${entry.id}`);
 
-// Fake require: the bundle only needs these two specifiers.
+// Fake require: the bundle needs these three specifiers.
 const fakeRequire = (id) => {
   if (id === 'react/jsx-runtime') return { jsx: () => null, jsxs: () => null, Fragment: () => null };
+  // The header fullscreen toggle pulls in three hooks. This test never renders a
+  // slot component, so plain stubs are enough — but the require itself happens at
+  // module scope and must resolve.
+  if (id === 'react') {
+    return {
+      useState: (initial) => [typeof initial === 'function' ? initial() : initial, () => {}],
+      useEffect: () => {},
+      useCallback: (fn) => fn,
+    };
+  }
   if (id === '@deepseek-ai/dsh-client-store') {
     return {
       defineStore: (decl) => ({
@@ -110,7 +120,9 @@ for (const s of ['slots', 'locale', 'theme']) {
 const tokenLayers = [];
 const effectBodies = [];
 let registered = null;
+const registrationLog = [];
 let currentSnapshot = { active: { tokens: { '--dsw-alias-bg-base': 'rgb(21, 21, 23)' } } };
+const KNOWN_SLOTS = ['settings.section', 'conversation.session.header.utilities'];
 const ctx = {
   theme: {
     overrideTokens: (source, tokens) => { tokenLayers.push([source, tokens]); return () => {}; },
@@ -119,8 +131,15 @@ const ctx = {
   on: () => () => {},
   effect: (fn) => { effectBodies.push(fn); },
   slots: {
-    inject: (key, fn) => { if (key !== 'settings.section') throw new Error(`unexpected slot ${key}`); fn(); },
-    register: (options, component) => { registered = { options, component }; return () => {}; },
+    inject: (key, fn) => {
+      if (!KNOWN_SLOTS.includes(key)) throw new Error(`unexpected slot ${key}`);
+      fn();
+    },
+    register: (options, component) => {
+      registrationLog.push({ options, component });
+      registered = { options, component };
+      return () => {};
+    },
   },
 };
 
@@ -142,7 +161,7 @@ if (!styleEl.textContent.includes('#root')) throw new Error('style missing #root
 if (!styleEl.textContent.includes('body.dsh-lg-on [data-composer-card]::before')) throw new Error('card frosted pseudo rule must be gated by body.dsh-lg-on');
 if (!styleEl.textContent.includes('body.dsh-lg-on [data-composer-card] button[class*="_primary"]')) throw new Error('send-button lens rule must be gated by body.dsh-lg-on');
 if (!styleEl.textContent.includes('body.dsh-lg-on [data-queue-dock] > div')) throw new Error('queue-dock frosted rule must be gated by body.dsh-lg-on');
-if (!styleEl.textContent.includes('body.dsh-lg-on [data-time-hover-root] [class*="_bubble"]::before')) throw new Error('bubble frosted pseudo rule must be gated by body.dsh-lg-on');
+if (!styleEl.textContent.includes('body.dsh-lg-on [data-conversation-scroll] [class*="_bubble"]::before')) throw new Error('bubble frosted pseudo rule must be gated by body.dsh-lg-on');
 if (!styleEl.textContent.includes('[data-composer-card]::before')) throw new Error('style missing composer-card frosted pseudo rule');
 if (!styleEl.textContent.includes('button[class*="_primary"]')) throw new Error('style missing send-button lens rule');
 if (!styleEl.textContent.includes('[data-queue-dock] > div')) throw new Error('style missing queue-dock frosted rule');
@@ -154,7 +173,10 @@ if (!cardRule.includes('isolation')) throw new Error('composer card must isolate
 const pseudoRule = styleEl.textContent.match(/\[data-composer-card\]::before\s*\{[^}]*\}/)?.[0] ?? '';
 if (!pseudoRule.includes('backdrop-filter')) throw new Error('card frost must ride the ::before pseudo, never the card itself');
 if (!pseudoRule.includes('inset 0 1px 0')) throw new Error('card top rim must be a thin 1px line, not a wide band');
-if (!styleEl.textContent.includes('[data-time-hover-root] [class*="_bubble"]::before')) throw new Error('style missing bubble frosted pseudo rule');
+// the bubble anchor is dual (harness <=0.1.x: [data-time-hover-root];
+// harness >=0.2: [data-conversation-scroll]) — assert BOTH arms survived
+if (!styleEl.textContent.includes('[data-time-hover-root] [class*="_bubble"]::before')) throw new Error('style missing the legacy bubble frosted pseudo rule');
+if (!styleEl.textContent.includes('[data-conversation-scroll] [class*="_bubble"]::before')) throw new Error('style missing the harness>=0.2 bubble frosted pseudo rule');
 // settings modal: frosted + same lens rim as the composer card, on the pseudo only
 if (!styleEl.textContent.includes('[role="dialog"][aria-labelledby]::before')) throw new Error('style missing settings-dialog frosted pseudo rule');
 const dialogBase = styleEl.textContent.match(/\[role="dialog"\]\[aria-labelledby\]\s*\{[^}]*\}/)?.[0] ?? '';
@@ -163,30 +185,156 @@ const dialogRule = styleEl.textContent.match(/\[role="dialog"\]\[aria-labelledby
 if (!dialogRule.includes('backdrop-filter')) throw new Error('settings dialog frost must ride the ::before pseudo');
 if (!dialogRule.includes('inset 0 1px 0')) throw new Error('settings dialog needs the same lens rim as the composer card');
 if (dialogRule.includes('z-index: 0')) throw new Error('settings dialog pseudo must sit behind content');
-// conversation header (对话/轨迹/session log bar): gradient blur + capsule tabs
-if (!styleEl.textContent.includes('body.dsh-lg-on header:has([role="tablist"])::before')) throw new Error('style missing conversation-header gradient blur rule');
-const headerRule = styleEl.textContent.match(/body\.dsh-lg-on header:has\(\[role="tablist"\]\)::before\s*\{[^}]*\}/)?.[0] ?? '';
+// conversation header (对话/轨迹/session log bar): gradient blur + capsule tabs.
+// The bar carries a DUAL anchor: `header:has([role="tablist"])` for harness
+// <=0.1.x and `[data-slot="conversation.header"] > header` for harness >=0.2
+// (where the tablist is conditional, so a single-view session has no tablist
+// at all and the slot-anchored arm is the only one that matches).
+if (!styleEl.textContent.includes('body.dsh-lg-on header:has([role="tablist"])::before')) throw new Error('style missing conversation-header gradient blur rule (legacy anchor)');
+if (!styleEl.textContent.includes('body.dsh-lg-on [data-slot="conversation.header"] > header::before')) throw new Error('style missing conversation-header gradient blur rule (harness>=0.2 anchor)');
+const headerRule = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on header:has\(\[role="tablist"\]\)::before\s*\{[^}]*\}/)?.[0] ?? '';
 if (!headerRule.includes('backdrop-filter')) throw new Error('header blur must ride the ::before pseudo');
 if (!headerRule.includes('mask-image')) throw new Error('header blur needs a vertical mask (strong top -> none bottom)');
+const headerRuleNew = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header::before[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!headerRuleNew.includes('backdrop-filter')) throw new Error('harness>=0.2 header blur must ride the ::before pseudo');
+if (!headerRuleNew.includes('mask-image')) throw new Error('harness>=0.2 header blur needs the vertical mask');
 // the bar must float OVER the scrolling messages (text visible through the blur)
-if (!styleEl.textContent.includes('div:has(> [data-conversation-scroll])[data-phase="active"]')) throw new Error('style missing conversation-root overlay scoping');
-const headerOverlay = styleEl.textContent.match(/body\.dsh-lg-on div:has\(> \[data-conversation-scroll\]\)\[data-phase="active"\] > \[data-slot="conversation\.session\.header"\] > header:has\(\[role="tablist"\]\)\s*\{[^}]*\}/)?.[0] ?? '';
-if (!headerOverlay.includes('position: absolute')) throw new Error('header must be lifted out of the flex row to overlay the messages (through the slot wrapper)');
+if (!styleEl.textContent.includes('div:has(> [data-conversation-scroll])[data-phase="active"]')) throw new Error('style missing conversation-root overlay scoping (legacy)');
+const headerOverlay = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on div:has\(> \[data-conversation-scroll\]\)\[data-phase="active"\] > \[data-slot="conversation\.session\.header"\] > header:has\(\[role="tablist"\]\)\s*\{[^}]*\}/)?.[0] ?? '';
+if (!headerOverlay.includes('position: absolute')) throw new Error('header must be lifted out of the flex row to overlay the messages (legacy anchor)');
 if (!headerOverlay.includes('z-index: 5')) throw new Error('header must float above the scrolling list');
-const scrollPad = styleEl.textContent.match(/body\.dsh-lg-on div:has\(> \[data-conversation-scroll\]\)\[data-phase="active"\] > \[data-conversation-scroll\]\s*\{[^}]*\}/)?.[0] ?? '';
-if (!scrollPad.includes('padding-top: 88px')) throw new Error('scroll area must reserve the header height so text starts below the bar');
-if (!styleEl.textContent.includes('header:has([role="tablist"]) [role="tab"]')) throw new Error('style missing capsule tab rules');
-const tabRule = styleEl.textContent.match(/body\.dsh-lg-on header:has\(\[role="tablist"\]\) \[role="tab"\]\s*\{[^}]*\}/)?.[0] ?? '';
-if (!tabRule.includes('999px')) throw new Error('tabs must be capsule-shaped (999px radius)');
-const tabPseudo = styleEl.textContent.match(/body\.dsh-lg-on header:has\(\[role="tablist"\]\) \[role="tab"\]::before\s*\{[^}]*\}/)?.[0] ?? '';
-if (!tabPseudo.includes('backdrop-filter')) throw new Error('tab glass must ride the ::before pseudo');
+// harness >=0.2: the real DOM is [data-phase] > [data-slot="conversation.header"] > header
+// (the slot anchor is display:contents, and the stock .root is position:relative)
+const headerOverlayNew = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-phase="active"\] > \[data-slot="conversation\.header"\] > header[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!headerOverlayNew.includes('position: absolute')) throw new Error('harness>=0.2 header must be taken out of flow to overlay the messages');
+if (!headerOverlayNew.includes('z-index: 5')) throw new Error('harness>=0.2 header must float above the scrolling list');
+if (!headerOverlayNew.includes('background: transparent')) throw new Error('harness>=0.2 header must not paint its own background');
+const scrollPad = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on div:has\(> \[data-conversation-scroll\]\)\[data-phase="active"\] > \[data-conversation-scroll\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!scrollPad.includes('padding-top: 56px')) throw new Error('scroll area must reserve the one-row header height so text starts below the bar');
+const scrollPadNew = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-phase="active"\] \[data-conversation-scroll\][^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!scrollPadNew.includes('padding-top: 56px')) throw new Error('harness>=0.2 scroll area must reserve the one-row header height');
+// The bar is ONE row: header -> flex, title row dissolved, tablist ordered just
+// left of the header utilities (the "open in…" dropdown).
+const headerRow = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header\s*\{[^}]*display: flex[^}]*\}/)?.[0] ?? '';
+if (!headerRow.includes('display: flex')) throw new Error('the header must be laid out as one flex row (no second row for the tabs)');
+if (!headerRow.includes('min-height: 48px')) throw new Error('the one-row header must be 48px tall, not the stock 76px');
+const titleRow = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header \[class\*="_titleRow"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!titleRow.includes('display: contents')) throw new Error('the title row must be dissolved so its children join the header flex row');
+const titleCluster = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header \[class\*="_titleCluster"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!titleCluster.includes('flex: 1 1 auto')) throw new Error('the title cluster must take the free space');
+if (!titleCluster.includes('order: 1')) throw new Error('the title cluster must stay first in the reordered row');
+if (!titleCluster.includes('--dsh-frame-leading-clearance')) throw new Error('the leading-seat clearance must move onto the title cluster');
+const tabsRule = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-conversation-tabs\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!tabsRule.includes('order: 2')) throw new Error('the tablist must be ordered before the header utilities');
+const utilities = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header \[class\*="_headerUtilities"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!utilities.includes('order: 3')) throw new Error('the header utilities (the open-in dropdown) must follow the tabs');
+const corner = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header \[class\*="_headerCorner"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!corner.includes('order: 4')) throw new Error('the header corner must stay last');
+// Tabs are small uniform buttons now: no pill, no lens pseudo.
+if (!styleEl.textContent.includes('header:has([role="tablist"]) [role="tab"]')) throw new Error('style missing tab button rules');
+if (!styleEl.textContent.includes('[data-conversation-tabs] [role="tab"]')) throw new Error('style missing tab button rules for the harness>=0.2 tablist anchor');
+const tabRule = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on header:has\(\[role="tablist"\]\) \[role="tab"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!tabRule.includes('border-radius: 6px')) throw new Error('tabs must be small rounded buttons (6px radius)');
+if (tabRule.includes('999px')) throw new Error('the oversized capsule/pill radius must be gone');
+const tabRuleNew = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-conversation-tabs\] \[role="tab"\][^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!tabRuleNew.includes('border-radius: 6px')) throw new Error('harness>=0.2 tabs must be small rounded buttons (6px radius)');
+if (tabRuleNew.includes('999px')) throw new Error('the harness>=0.2 capsule/pill radius must be gone');
+if (styleEl.textContent.includes('[role="tab"]::before')) throw new Error('the per-tab lens ::before pseudo must be gone with the capsule');
 if (!styleEl.textContent.includes('[role="tab"]::after')) throw new Error('the old tab underline indicator must be hidden');
+// Windows caption strip (desktop): the 40px drag band gets the same gradient frost.
+const captionStrip = styleEl.textContent.match(/html\[data-windows-titlebar\] \[class\*="_frame"\][^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!styleEl.textContent.includes('html[data-windows-titlebar]')) throw new Error('style missing the Windows caption strip rule');
+if (!captionStrip.includes('backdrop-filter')) throw new Error('the caption strip must ride backdrop-filter');
+if (!captionStrip.includes('mask-image')) throw new Error('the caption strip needs a vertical gradient mask');
+// The fullscreen toggle is contributed through the header utilities slot, so the
+// desktop build (which ships no fullscreen entry point) gets one.
+const fullscreenReg = registrationLog.find((r) => r.options?.id === 'liquid-glass-fullscreen');
+if (!fullscreenReg) throw new Error('the fullscreen toggle must be registered into the header utilities slot');
+if (fullscreenReg.options.name !== 'conversation.session.header.utilities') throw new Error('the fullscreen toggle must target the header utilities slot');
+if (typeof fullscreenReg.component !== 'function') throw new Error('the fullscreen toggle must be a component');
+const fullscreenCss = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on button\.dsh-lg-fullscreen-toggle\s*\{[^}]*\}/)?.[0] ?? '';
+if (!fullscreenCss.includes('28px')) throw new Error('the fullscreen toggle must be a 28px icon button');
+if (!fullscreenCss.includes('order: 5')) throw new Error('the fullscreen toggle must be ordered after the header corner');
+if (fullscreenCss.includes('999px')) throw new Error('the fullscreen toggle must not be a capsule');
+// Desktop: the bar merges INTO the 40px caption band (window-level strip).
+const captioned = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[data-slot="conversation\.header"\] > header,\s*html\[data-windows-titlebar\] body\.dsh-lg-on header:has\(\[role="tablist"\]\)\s*\{[^}]*\}/)?.[0] ?? '';
+if (!captioned) throw new Error('style missing the desktop caption-band merge rule');
+if (!captioned.includes('position: fixed')) throw new Error('the desktop bar must leave the column and span the window');
+if (!captioned.includes('height: var(--dsh-windows-titlebar-height, 40px)')) throw new Error('the desktop bar must be exactly the caption band height');
+if (!captioned.includes('min-height: 0')) throw new Error('the desktop bar must drop the 48px one-row min-height');
+// The bar's BOX must start after the chrome controls, not merely pad them away:
+// a box spanning them swallows their clicks (reported bug).
+if (!captioned.includes('left: calc(var(--dsh-windows-menu-start, 48px) + 134px)')) throw new Error('the desktop bar box must start after the window-chrome controls');
+if (/(?:^|\n)\s*padding-left: calc\(var\(--dsh-windows-menu-start/.test(styleEl.textContent)) throw new Error('the clearance must be a left offset, not padding-left');
+if (!captioned.includes('titlebar-area-width')) throw new Error('the desktop bar must clear the native caption buttons');
+if (!captioned.includes('-webkit-app-region: drag')) throw new Error('the desktop bar must claim the window drag region it now covers');
+if (!styleEl.textContent.includes("-webkit-app-region: no-drag")) throw new Error('interactive occupants of the desktop bar must opt out of the drag region');
+// One frost source only: the band's pseudo, never the bar's as well.
+const headerPseudoOff = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[data-slot="conversation\.header"\] > header::before,[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!headerPseudoOff.includes('display: none')) throw new Error('the desktop bar pseudo must be off so only the caption band frosts');
+if (!styleEl.textContent.includes('black 30%, transparent 100%')) throw new Error('the caption band mask must match the bar gradient shape');
+// The right-most control must not slide under the native caption buttons.
+const cornerFix = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[data-slot="conversation\.header"\] > header \[class\*="_headerCorner"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!cornerFix.includes('margin-right: 0')) throw new Error('the header corner negative margin must be cancelled so it clears the caption buttons');
+// The sidebar's own collapse control is window chrome: the lens rule must not
+// drag it back into the sidebar (reported bug).
+const toggleRestore = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[class\*="_root"\]:has\(\[class\*="_treeBody"\]\) button\[class\*="_iconButton"\]\[class\*="_toggle"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!toggleRestore.includes('position: fixed')) throw new Error('the sidebar collapse control must stay pinned in the caption band');
+const desktopScrollPad = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[data-phase="active"\] \[data-conversation-scroll\][^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!desktopScrollPad.includes('padding-top: var(--dsh-windows-titlebar-height, 40px)')) throw new Error('the desktop transcript must clear only the caption band');
+const desktopFullscreen = styleEl.textContent.match(/html\[data-windows-titlebar\]\[data-fullscreen\][^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!desktopFullscreen.includes('padding-right: 0')) throw new Error('fullscreen hides the caption buttons, so the right clearance must go');
+// Surfaces the glass recipe left see-through: the choice dialog (which carries no
+// role=dialog at all), the changed-files hover preview (role=dialog with
+// aria-label — the case the settings-dialog rule deliberately excludes), and two
+// faint token-filled surfaces. Each must pair a real fill with a backdrop blur.
+const choiceCards = styleEl.textContent.match(/body\.dsh-lg-on \[data-question-key\] \[class\*="_card"\],[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!choiceCards.includes('backdrop-filter')) throw new Error('the choice dialog must ride backdrop-filter');
+if (!choiceCards.includes('--dsh-lg-tint')) throw new Error('the choice dialog must get a real background from the tint variable');
+if (!choiceCards.includes('78%')) throw new Error('the choice dialog fill must be the agreed 78%');
+// The preview's floating surface is the element DIRECTLY wrapping the harness's
+// stable attribute — HoverCard's card class is a build hash and must not be used.
+const previewDialog = styleEl.textContent.match(/body\.dsh-lg-on \*:has\(> \[data-changes-hover-preview\]\)\s*\{[^}]*\}/)?.[0] ?? '';
+if (!previewDialog) throw new Error('style missing the changed-files hover preview rule');
+if (!previewDialog.includes('backdrop-filter')) throw new Error('the hover preview must ride backdrop-filter');
+if (!previewDialog.includes('84%')) throw new Error('the hover preview fill must be the agreed 84%');
+if (previewDialog.includes('border:')) throw new Error('the preview surface keeps its own shadow and radius, so it needs no border');
+// The inner element must NOT be painted too, or the two fills stack into an opaque panel.
+if (/body\.dsh-lg-on \[data-changes-hover-preview\]\s*\{/.test(styleEl.textContent)) throw new Error('only the preview SURFACE may be filled, not the inner element');
+const faintSurfaces = styleEl.textContent.match(/body\.dsh-lg-on \[data-changed-files\],[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!faintSurfaces.includes('[data-question-reply]')) throw new Error('the question receipt bubble must be covered too');
+if (!faintSurfaces.includes('backdrop-filter')) throw new Error('the edited-files card and receipt bubble must ride backdrop-filter');
+// both surfaces must have a dark-theme counterpart, or they go opaque white in dark mode
+for (const [name, snippet] of [['choice dialog', 'body[data-ds-dark-theme].dsh-lg-on [data-question-key]'], ['hover preview', 'body[data-ds-dark-theme].dsh-lg-on *:has(> [data-changes-hover-preview])']]) {
+  if (!styleEl.textContent.includes(snippet)) throw new Error(`${name} needs a dark-theme fill`);
+  const rule = styleEl.textContent.match(new RegExp(snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^{]*\\{[^}]*\\}'))?.[0] ?? '';
+  if (!rule.includes('--dsh-lg-tint-dark')) throw new Error(`${name} dark fill must use the dark tint variable`);
+}
+// The model-selector popup is deliberately left to the harness: this theme must
+// NOT restyle it (other theme plugins style the same menu, and the two fought).
+// NB: the access-mode dropdown rule legitimately uses the NEGATIVE form
+// (`:not(:has(.scrollable))`) to exclude the model menu, so only the positive
+// full-screen selector must be gone.
+if (styleEl.textContent.includes('[role="menu"]:has(.scrollable)')) throw new Error('the model-selector full-screen styling must be gone (it conflicts with other theme plugins)');
+if (styleEl.textContent.includes('grid-template-columns: 1fr 1fr')) throw new Error('the model-selector two-column grid must be gone');
+// the access-mode dropdown (a different [role="menu"] in the composer) keeps its glass
+if (!styleEl.textContent.includes('[role="menu"]:not(:has(.scrollable))')) throw new Error('the access-mode dropdown glass must stay');
+// hover styling must stay scoped to this theme's own surfaces, never blanket
+if (styleEl.textContent.includes('body.dsh-lg-on button:not(:disabled):hover')) throw new Error('hover styling must not use a blanket button selector');
+if (styleEl.textContent.includes('[role="menuitem"]:not(:disabled):hover')) throw new Error('hover styling must not reach every menu item (conflicts with other plugins)');
 // tool call text gets text-shadow and optional custom color
 if (!styleEl.textContent.includes('data-disclosure-row] [class*="title"]')) throw new Error('style missing tool call title text-shadow rule');
-const toolTitleRule = styleEl.textContent.match(/body\.dsh-lg-on \[data-variant\] \[data-disclosure-row\] \[class\*="title"\]\s*\{[^}]*\}/)?.[0] ?? '';
+const toolTitleRule = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-variant\] \[data-disclosure-row\] \[class\*="title"\]\s*\{[^}]*\}/)?.[0] ?? '';
 if (!toolTitleRule.includes('text-shadow')) throw new Error('tool call titles must have text-shadow for readability');
-// the header's bottom hairline must be gone (no white line between bar and messages)
-const headerLine = styleEl.textContent.match(/body\.dsh-lg-on header:has\(\[role="tablist"\]\)::after\s*\{[^}]*\}/)?.[0] ?? '';
+// the header's bottom hairline must be gone. On harness >=0.2 the stock header
+// paints it as a REAL border-bottom (.5px solid --dsw-alias-border-l3) — which
+// this theme turns into a bright white line — so clearing the pseudo alone is
+// not enough: the border itself must be cleared too.
+const headerBaseNew = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on \[data-slot="conversation\.header"\] > header[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!headerBaseNew.includes('border-bottom: none')) throw new Error('harness>=0.2 header must clear the stock border-bottom white seam');
+const headerBaseLegacy = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on header:has\(\[role="tablist"\]\)\s*\{[^}]*\}/)?.[0] ?? '';
+if (!headerBaseLegacy.includes('border-bottom: none')) throw new Error('the legacy header arm must clear the stock border-bottom too');
+const headerLine = styleEl.textContent.match(/(?:^|\n)body\.dsh-lg-on header:has\(\[role="tablist"\]\)::after\s*\{[^}]*\}/)?.[0] ?? '';
 if (!headerLine.includes('display: none')) throw new Error('the header bottom hairline must be hidden');
 const layer = findById(body, 'dsh-liquid-glass-bg');
 if (!layer) throw new Error('no background layer');
@@ -200,6 +348,30 @@ const bg = tokens['--dsw-alias-bg-base'];
 if (!bg || typeof bg.light !== 'string' || typeof bg.dark !== 'string') throw new Error('bg-base override malformed');
 if (bg.light !== 'transparent') throw new Error(`wallpaper active should make bg-base transparent, got ${bg.light}`);
 if (Object.keys(tokens).length < 20) throw new Error(`too few overrides: ${Object.keys(tokens).length}`);
+
+// Light-mode text contrast. The harness greys assume an opaque canvas
+// (secondary #61666b, tertiary #81858c, caption #adb2b8); over this theme's
+// translucent surfaces they wash out, so the light steps must be visibly darker
+// while dark mode keeps the harness static tokens.
+const luminance = (hex) => {
+  const v = String(hex).replace('#', '');
+  const chan = [0, 2, 4]
+    .map((i) => parseInt(v.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
+};
+for (const [name, stockHex, maxLum] of [
+  ['--dsw-alias-label-secondary', '#61666b', 0.05],
+  ['--dsw-alias-label-tertiary', '#81858c', 0.09],
+  ['--dsw-alias-label-caption', '#adb2b8', 0.15],
+]) {
+  const token = tokens[name];
+  if (!token) throw new Error(`${name} must be overridden for light-mode readability`);
+  if (!/^#[0-9a-f]{6}$/i.test(token.light)) throw new Error(`${name} light value must be a plain hex, got ${token.light}`);
+  if (luminance(token.light) >= luminance(stockHex)) throw new Error(`${name} must be darker than the harness value ${stockHex}`);
+  if (luminance(token.light) > maxLum) throw new Error(`${name} is still too light for a translucent canvas: ${token.light}`);
+  if (!String(token.dark).includes('--dsw-static-neutral-bluish-')) throw new Error(`${name} must reference the harness dark token, got ${token.dark}`);
+}
 
 // 3. wallpaper layer: demo.html -> iframe -> /liquid-glass/wallpaper/demo.html?<demo tunables>
 const media = layer.children[0];
@@ -220,12 +392,13 @@ if (bgRule.includes('--dsh-lg-blur')) throw new Error('background blur must NOT 
 
 // 5. settings page registered as a top-level settings.section (nav row beside
 //    通用设置 / 模型 / 插件), not a row inside the General tab
-if (!registered || registered.options.id !== 'liquid-glass') throw new Error('panel not registered');
-if (registered.options.name !== 'settings.section') throw new Error(`panel must be a settings.section page, got ${registered.options.name}`);
-if (registered.options.order !== 100) throw new Error(`section order must place it after shipped pages, got ${registered.options.order}`);
-if (registered.options.label !== '液态玻璃') throw new Error(`section nav label missing, got ${String(registered.options.label)}`);
-const instance = registered.options.store.create();
-const face = registered.options.inject(instance.actions);
+const panelRegistration = registrationLog.find((r) => r.options?.id === 'liquid-glass');
+if (!panelRegistration) throw new Error('panel not registered');
+if (panelRegistration.options.name !== 'settings.section') throw new Error(`panel must be a settings.section page, got ${panelRegistration.options.name}`);
+if (panelRegistration.options.order !== 100) throw new Error(`section order must place it after shipped pages, got ${panelRegistration.options.order}`);
+if (panelRegistration.options.label !== '液态玻璃') throw new Error(`section nav label missing, got ${String(panelRegistration.options.label)}`);
+const instance = panelRegistration.options.store.create();
+const face = panelRegistration.options.inject(instance.actions);
 const panelState = instance.getSnapshot();
 if (panelState.settings.enabled !== true || panelState.settings.wallpaper.kind !== 'local') throw new Error('panel state not synced');
 if (panelState.settings.wallpaper.muted !== true) throw new Error('video wallpaper must default to muted');

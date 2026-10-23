@@ -58,8 +58,38 @@ ${raw}
   writeFileSync(out, wrapped);
 }
 
+/**
+ * The stylesheet lives in ONE template literal (const SHEET = ... ;), so a stray
+ * backtick inside it — easy to introduce when a CSS comment quotes a property —
+ * terminates the template early and swc then reports a bewildering syntax error
+ * dozens of lines away. Catch it here with a precise message.
+ * (See dev-troubleshooting.md, fault 16.)
+ */
+function assertNoBacktickInSheet() {
+  const lines = readFileSync(join(root, 'src', 'client', 'index.tsx'), 'utf8').split(/\r?\n/);
+  const start = lines.findIndex((line) => line.startsWith('const SHEET = `'));
+  if (start < 0) throw new Error('build: could not find the SHEET template literal in src/client/index.tsx');
+  let end = -1;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (lines[i].trim() === '`;') {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) throw new Error('build: could not find the END of the SHEET template literal (expected a line with just `; )');
+  const offenders = [];
+  for (let i = start + 1; i < end; i += 1) if (lines[i].includes('`')) offenders.push(i + 1);
+  if (offenders.length > 0) {
+    throw new Error(
+      `build: stray backtick inside the SHEET template literal at line(s) ${offenders.join(', ')} of src/client/index.tsx — ` +
+        'it ends the template early. Use plain text in stylesheet comments, never backticks.',
+    );
+  }
+}
+
 async function buildOnce() {
   rmSync(join(root, '.build'), { recursive: true, force: true });
+  assertNoBacktickInSheet();
   await transpile('shared.ts', 'shared.js', 'es6');
   await transpile('index.ts', 'index.js', 'es6');
   await transpile('client/index.tsx', join('..', '.build', 'client.raw.js'), 'commonjs', {
