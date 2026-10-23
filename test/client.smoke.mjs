@@ -310,6 +310,18 @@ for (const [name, snippet] of [['choice dialog', 'body[data-ds-dark-theme].dsh-l
   const rule = styleEl.textContent.match(new RegExp(snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^{]*\\{[^}]*\\}'))?.[0] ?? '';
   if (!rule.includes('--dsh-lg-tint-dark')) throw new Error(`${name} dark fill must use the dark tint variable`);
 }
+// Harness tooltip bug workaround (see the stylesheet comment): the tooltip is an
+// inline position:fixed bubble, so any container-type ancestor becomes its
+// containing block, misplaces it and inflates the transcript's scroll area.
+const tooltipFix = styleEl.textContent.match(/body\.dsh-lg-on \[data-composer-card\] \[class\*="_row"\],[^{]*\{[^}]*\}/)?.[0] ?? '';
+if (!tooltipFix.includes('container-type: normal')) throw new Error('the harness tooltip containment workaround is missing');
+if (!tooltipFix.includes('[data-conversation-scroll]')) throw new Error('the tooltip workaround must also cover the transcript scroll container');
+if (!tooltipFix.includes('_frame')) throw new Error('the tooltip workaround must also cover the chat frame');
+// The turn-rail container must be left alone: its own @container query hides the
+// rail on narrow windows, which would stop working if it were neutralised.
+if (/body\.dsh-lg-on [^{,]*_slot[^{,]*\{[^}]*container-type/.test(styleEl.textContent)) {
+  throw new Error('the turn-navigator container must keep its container-type (its @container query hides the rail on narrow windows)');
+}
 // The model-selector popup is deliberately left to the harness: this theme must
 // NOT restyle it (other theme plugins style the same menu, and the two fought).
 // NB: the access-mode dropdown rule legitimately uses the NEGATIVE form

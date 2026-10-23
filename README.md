@@ -210,6 +210,7 @@ See *Why localStorage* below.
 | Model-selection list | **left to DSH.** An earlier release restyled it; other theme plugins style the same menu and the two overwrote each other, so the theme backed off |
 | Hover styling | scoped to the composer, queue dock, dialogs/menus, view tabs and sidebar only — it will not restyle another plugin's controls |
 | Light mode | supported, but the glass reads washed out — see the note at the top |
+| DSH tooltip bug | **known harness bug**, reproduces without this theme: hovering the send button or the context-percentage button scrolled the page to the top. The theme works around it by switching `container-type` off on three composer/transcript boxes, which costs four narrow-window layout tweaks — see [CHANGELOG.md](CHANGELOG.md) |
 | Settings storage | `localStorage` (per browser) |
 
 ---

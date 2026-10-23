@@ -26,6 +26,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   这是用插槽注册的 React 组件（会被 fiber 自动回收），没有做 DOM 注入。
 
 #### 修复
+- **悬浮发送按钮 / 上下文百分比按钮会把整页滚到最顶上**（**这是 DSH 自身的 bug**，
+  开不开本主题都会出现；本主题只做绕行，不声称修好了它）。成因：DSH 的 Tooltip 把浮层
+  **内联**渲染在触发元素旁（`portal` 默认 `false`），浮层 CSS 是 `position: fixed`，
+  但写入的是 `getBoundingClientRect()` 得到的**视口坐标**；而作曲器行 `.RlGAzG_row`、
+  对话滚动容器 `.xz4KEq_scroll`、对话框架 `.xz4KEq_frame` 都声明了
+  `container-type: inline-size` —— 它隐含 **layout containment，会让该元素成为
+  `position: fixed` 后代的包含块**。于是浮层被锚定到一个小盒子上（`top:900` 变成
+  "该行下方 900px"）、飞到屏幕外，还把这 900px 计入了滚动容器的可滚动溢出 → 视图被顶走。
+  绕行：本主题在这三处把 `container-type` 设为 `normal`，让浮层重新以视口为包含块
+  （浮层本身也恢复正常显示）。**代价**：依赖这三个盒子做查询的 4 条窄窗口微调不再生效
+  （作曲器间距 560px 以下不再收缩到 8px；若干触发器标签在 540/480/460px 以下不再折叠）。
+  轮次导航轨与 deliverables 卡片各有自己的容器，**未受影响**（导航轨那个刻意不动，
+  否则窄窗口下导航轨会一直显示）。真正的修复应由 DSH 完成：Tooltip 改为渲染到 `body`，
+  或坐标改为相对包含块计算。
 - **兼容性门禁拒绝加载**：5 个 `@deepseek-ai/dsh-client-*` 的 `peerDependencies`
   区间由 `^0.1.x-rc.*` 放宽为 **`^0.1.2-rc.1 || ^0.2.0-0`**。
   原因：DSH 用**单一运行时版本**校验插件清单（清单里没有 `engines.dsh` 时，
@@ -182,6 +196,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   as a slot-registered React component (reclaimed by the fiber) — no DOM injection.
 
 #### Fixed
+- **Hovering the send button or the context-percentage button scrolled the whole page to the top**
+  (**this is a bug in DSH itself** — it reproduces with or without this theme; the theme only works
+  around it and does not claim to fix it). Cause: DSH's Tooltip renders its bubble **inline** next to
+  the trigger (`portal` defaults to `false`), the bubble is `position: fixed`, and the coordinates it
+  writes come from `getBoundingClientRect()` — i.e. **viewport** coordinates. But the composer row
+  `.RlGAzG_row`, the transcript's scroll container `.xz4KEq_scroll` and the chat frame
+  `.xz4KEq_frame` all declare `container-type: inline-size`, which implies **layout containment and
+  therefore a containing block for `position: fixed` descendants**. The bubble is thus anchored to a
+  small row (`top: 900` becomes "900px below that row"), lands off screen, and — sitting inside an
+  `overflow-y: auto` container — adds that 900px to the container's scrollable overflow, pushing the
+  view away. Workaround: the theme sets `container-type: normal` on those three boxes so the bubble
+  anchors to the viewport again (and renders correctly while it is at it). **Cost**: the four
+  narrow-window @container tweaks that resolved against those boxes stop matching (the composer no
+  longer tightens its gaps to 8px below 560px; a few trigger labels no longer collapse below
+  540/480/460px). The turn rail and the deliverables card have containers of their own and are
+  unaffected — the rail's is deliberately left alone, or it would stay visible on narrow windows.
+  The real fix belongs in DSH: portal the tooltip to `body`, or compute its coordinates against its
+  containing block.
 - **Compatibility gate refused to load the plugin**: the five `@deepseek-ai/dsh-client-*`
   `peerDependencies` ranges are widened from `^0.1.x-rc.*` to
   **`^0.1.2-rc.1 || ^0.2.0-0`**. DSH validates a plugin manifest against a
