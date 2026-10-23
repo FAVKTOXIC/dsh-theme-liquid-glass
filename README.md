@@ -94,10 +94,12 @@ that shares the window's own title bar instead of stealing a row of its own.
 
 | | |
 |---|---|
-| ![New session screen](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png) | ![Composer with edge refraction](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.png) |
-| New session, built-in animated wallpaper | Composer card, edge refraction close-up |
-| ![Chat with glass bubbles](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.png) | ![Settings page](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.png) |
-| Transcript with glass bubbles and the merged top bar | The Liquid Glass settings page |
+| ![Desktop build: the session bar shares the window's caption row](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop.png) | ![New session screen](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png) |
+| **Desktop build** — the session bar shares the caption row with 应用菜单/编辑 and the window buttons, so the transcript starts 40px from the top | New session, built-in animated wallpaper |
+| ![Composer with edge refraction](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.png) | ![Chat with glass bubbles](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.png) |
+| Composer card, edge refraction close-up | Transcript with glass bubbles |
+| ![Settings page](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.png) | |
+| The Liquid Glass settings page | |
 
 ---
 

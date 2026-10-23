@@ -70,10 +70,12 @@
 
 | | |
 |---|---|
-| ![新会话页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png) | ![输入卡片边缘折射](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.png) |
-| 新会话页 + 内置动态壁纸 | 输入卡片的边缘折射特写 |
-| ![对话界面](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.png) | ![设置页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.png) |
-| 玻璃气泡的对话 + 合并后的顶部栏 | Liquid Glass 设置页 |
+| ![桌面版：顶栏与系统标题栏同一行](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop.png) | ![新会话页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png) |
+| **桌面版** —— 顶栏与「应用菜单 / 编辑」和窗口按钮同处一行，消息区因此从离顶 40px 开始 | 新会话页 + 内置动态壁纸 |
+| ![输入卡片边缘折射](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.png) | ![对话界面](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.png) |
+| 输入卡片的边缘折射特写 | 玻璃气泡的对话 |
+| ![设置页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.png) | |
+| Liquid Glass 设置页 | |
 
 ---
 

@@ -150,6 +150,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `package.json` 的 `description` 同步重写（去掉失实与营销措辞），`keywords` 补
   `deepseek-harness-desktop` / `dsh-theme` / `frosted-glass` / `desktop`；
   `screenshots.json` 补入 `screenshot-input.png`（商店详情页画廊用，1–8 张）。
+- 新增 **桌面版真实截图** `assets/screenshots/screenshot-desktop.png`（1707×960，抓自运行中的
+  桌面版窗口），展示顶栏与系统标题栏合并后的效果；它排在 `screenshots.json` 与 README 图库首位
+  —— 此前仓库里的截图全部来自网页版，桌面版没有任何图。
 
 ### English
 
@@ -324,6 +327,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `package.json` `description` rewritten to match (no stale or marketing wording) and `keywords`
   extended with `deepseek-harness-desktop` / `dsh-theme` / `frosted-glass` / `desktop`;
   `screenshots.json` gained `screenshot-input.png` (the storefront detail gallery takes 1–8).
+- Added a **real desktop screenshot** — `assets/screenshots/screenshot-desktop.png` (1707x960,
+  captured from the running desktop window) showing the session bar merged into the system caption
+  row. It leads both `screenshots.json` and the README gallery, since every screenshot in the repo
+  until now came from the web GUI and none showed the desktop build.
 
 ---
 
