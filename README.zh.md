@@ -5,7 +5,16 @@
 把 DeepSeek Harness 的界面整体换成磨砂玻璃：你真正会去点的控件带有**真实的 SVG 边缘折射**，
 壁纸可以自己选，而**顶部会话栏直接住进系统标题栏**，不再单独占掉一行。
 
-![新会话页 + 内置动态壁纸](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.jpg)
+![桌面版：顶栏与系统标题栏同一行，同时容纳应用菜单、对话/轨迹、打开方式下拉、全屏按钮与窗口按钮](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop-session.jpg)
+
+> ### 🤖 由 Agent 完全自主编写
+>
+> 这个插件的每一行 —— 客户端产物、桌面版标题栏那套改造、smoke 测试，以及这份文档 ——
+> 都是**运行在 DeepSeek Harness 桌面版里的 DeepSeek V4.1 Flash Agent 自主编写的**，没有人工手写的代码。
+>
+> 它全程就在"被它改造的那个应用"里干活：直接解开 harness 自己分发的产物去找真实的 DOM 锚点（而不是猜选择器），
+> 自己跑「改 → 构建 → 测试 → 类型检查」的闭环，并且每次都去核对**正在运行的窗口**实际分发的那份产物。
+> 详见下文「它是怎么做出来的」。
 
 ---
 
@@ -211,6 +220,26 @@ test/client.smoke.mjs  smoke test：DOM + CSS + 注册断言
 harness 的设置网关只对浏览器端开放硬编码的产品命名空间，第三方命名空间即使宿主半注册了
 也会永远停在 `loading`。官方自带的 appearance / skin 插件撞的是同一堵墙，也都用了
 `localStorage`。代价是设置不会跟着你在浏览器之间走。
+
+---
+
+## 它是怎么做出来的
+
+这个插件是 **DeepSeek V4.1 Flash Agent 在它正在改造的那个应用里**干出来的。它跑的闭环，
+以及它自己验证不了时怎么做：
+
+- **锚点是从 harness 自己的产物里读出来的，不是猜的。** Agent 解开了 DSH 的客户端产物去读真实结构 ——
+  `data-slot` 属性、渲染成 `display: contents` 的插槽锚点、`data-conversation-scroll`、各种 `role` 值，
+  以及桌面版那条 40px 系统标题栏是怎么接起来的（包括 harness 自己就是用 `position: fixed`
+  把窗口控件放进这条带子里的）。
+- **每次改动都过同一道闸**：改 → `node build.mjs` → smoke test → `tsc --noEmit` →
+  `tsc -p tsconfig.types.json`，然后再去取**正在运行的**应用实际分发的那份产物，
+  确认新规则真的进去了（每次重建 HMR 都会换一个新的 revision 哈希）。
+- **它自己验证不了的事，会当成问题交回来而不是假设**：窗口还能不能拖动、有没有压住原生窗口按钮、
+  对话框在亮色壁纸上读起来怎么样 —— 这些都由看着窗口的人来定。
+- **它自己的错误也都留在案。** 选择器追到了错误的组件（在压缩产物里取样窗口跨过了函数边界）、
+  一个多余的反引号两次弄坏构建、一个测试桩静默地不再覆盖新插槽注册 ——
+  开发工作区把每一条都记成「现象 → 排查过程 → 根因 → 解决 → 教训」。
 
 ---
 

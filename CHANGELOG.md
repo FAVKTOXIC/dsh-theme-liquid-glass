@@ -161,6 +161,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   总体积 **8.79 MB → 0.87 MB（约 10%）**。1920 宽下 UI 文字依然清晰；用 4:2:2 而非 4:2:0
   是为了避免彩色文字边缘发糊（UI 截图满是彩色小字）。压缩脚本见工作区
   `.tools/compress-screenshots.py`，可重复执行。
+- README 开头增加「**由 Agent 完全自主编写**」说明（中英）：本插件的每一行 —— 客户端产物、
+  桌面版标题栏那套改造、smoke 测试与文档 —— 均由运行在 DeepSeek Harness 桌面版里的
+  **DeepSeek V4.1 Flash** Agent 自主编写；并新增「它是怎么做出来的」一节，说明它如何从
+  harness 自己的产物里读真实 DOM 锚点、如何自己跑「改 → 构建 → 测试 → 类型检查」闭环、
+  如何核对**正在运行**的窗口实际分发的产物，以及哪些验证被交回给人。首图同时换成桌面版会话页封面。
 
 ### English
 
@@ -348,6 +353,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Text stays crisp at 1920 wide, and 4:2:2 rather than 4:2:0 keeps coloured text edges from
   smearing, which UI screenshots are full of. The script lives at
   `.tools/compress-screenshots.py` in the workspace and can be re-run.
+- The READMEs now open with a **"written end-to-end by an agent"** note: every line of the plugin —
+  the client bundle, the desktop chrome work, the smoke tests and the docs — was written by the
+  **DeepSeek V4.1 Flash** agent running inside the DeepSeek Harness desktop app. A new
+  *How this was built* section describes how it read real DOM anchors out of the harness's own
+  bundles, ran its own edit → build → test → typecheck loop, verified changes against the bundle the
+  **running** window was serving, and which verifications it handed back to a human. The hero image
+  is now the desktop session cover.
 
 ---
 

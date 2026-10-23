@@ -6,7 +6,18 @@ A frosted-glass rewrite of the DeepSeek Harness interface: real SVG edge
 refraction on the controls you touch, a wallpaper you choose, and a session bar
 that shares the window's own title bar instead of stealing a row of its own.
 
-![New session screen with the built-in animated wallpaper](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.jpg)
+![Desktop build: the session bar shares the caption row with the app menubar, the conversation tabs, the open-in dropdown, the fullscreen button and the window buttons](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop-session.jpg)
+
+> ### 🤖 Written end-to-end by an agent
+>
+> Every line of this plugin — the client bundle, the desktop chrome work, the smoke
+> tests and these docs — was written **autonomously by the DeepSeek V4.1 Flash agent
+> running inside the DeepSeek Harness desktop app**. No human-written code.
+>
+> It worked the whole time inside the app it was theming: reading the harness's own
+> bundles to find real DOM anchors instead of guessing selectors, driving its own
+> edit → build → test → typecheck loop, and checking each change against the bundle
+> the running window was actually serving. See [How this was built](#how-this-was-built).
 
 ---
 
@@ -246,6 +257,29 @@ browser clients, so a third-party namespace stays `loading` forever even when th
 host half registered it. The shipped appearance and skin plugins hit the same
 wall and also use `localStorage`. The trade-off is that settings do not follow you
 between browsers.
+
+---
+
+## How this was built
+
+This plugin is the output of the DeepSeek V4.1 Flash agent working inside the app it was
+changing. The loop it ran, and what it did when it could not verify something itself:
+
+- **Real anchors, read from the harness's own bundles.** Rather than guessing selectors, the
+  agent unpacked DSH's client bundles and read the actual markup — `data-slot` attributes, slot
+  anchors that render as `display: contents`, `data-conversation-scroll`, `role` values — and how
+  the desktop wires its 40px caption band (including that the harness seats its own window-chrome
+  controls in that band with `position: fixed`).
+- **Every change through the same gate**: edit → `node build.mjs` → smoke test → `tsc --noEmit` →
+  `tsc -p tsconfig.types.json`, then fetch the bundle the **running** app was serving and confirm
+  the new rules were actually in it (HMR hands out a new revision hash on every rebuild).
+- **Verification it could not do itself was handed back as a question**, not assumed: whether
+  window dragging still works, whether the native caption buttons are cleared, how a dialog reads
+  on a bright wallpaper. Those were decided by a human looking at the window.
+- **Its own mistakes are on the record.** A selector traced to the wrong component (a sampling
+  window that crossed a function boundary in a minified bundle), a stray backtick that broke the
+  build twice, a test fixture that silently stopped exercising a new slot registration. The
+  development workspace keeps all of them as symptom → investigation → root cause → fix → lesson.
 
 ---
 
