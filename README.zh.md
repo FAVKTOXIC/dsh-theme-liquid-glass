@@ -5,7 +5,7 @@
 把 DeepSeek Harness 的界面整体换成磨砂玻璃：你真正会去点的控件带有**真实的 SVG 边缘折射**，
 壁纸可以自己选，而**顶部会话栏直接住进系统标题栏**，不再单独占掉一行。
 
-![新会话页 + 内置动态壁纸](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png)
+![新会话页 + 内置动态壁纸](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.jpg)
 
 ---
 
@@ -70,11 +70,13 @@
 
 | | |
 |---|---|
-| ![桌面版：顶栏与系统标题栏同一行](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop.png) | ![新会话页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.png) |
-| **桌面版** —— 顶栏与「应用菜单 / 编辑」和窗口按钮同处一行，消息区因此从离顶 40px 开始 | 新会话页 + 内置动态壁纸 |
-| ![输入卡片边缘折射](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.png) | ![对话界面](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.png) |
+| ![桌面版对话页：顶栏一行内含应用菜单、标签、打开方式下拉与窗口按钮](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop-session.jpg) | ![桌面版设置页：叠在壁纸上的液态玻璃面板](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop-settings.jpg) |
+| **桌面版** —— 一行内放下「应用菜单 / 编辑」、会话标题、**对话 / 轨迹**、「打开方式」下拉、全屏按钮与右侧栏开关 | 液态玻璃设置页：磨砂强度、边缘折射、玻璃颜色、不透明度、亮度、代码块不透明度 |
+| ![桌面版新会话页 + 自定义壁纸](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-desktop-wallpaper.jpg) | ![新会话页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-1.jpg) |
+| 自定义壁纸透过玻璃，新会话页 | 内置动态壁纸 |
+| ![输入卡片边缘折射](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-input.jpg) | ![对话界面](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-chat.jpg) |
 | 输入卡片的边缘折射特写 | 玻璃气泡的对话 |
-| ![设置页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.png) | |
+| ![设置页](https://raw.githubusercontent.com/FAVKTOXIC/dsh-theme-liquid-glass/main/assets/screenshots/screenshot-settings.jpg) | |
 | Liquid Glass 设置页 | |
 
 ---

@@ -149,10 +149,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - 新增「兼容性与刻意的取舍」表（模型列表交还 harness、悬停作用域、设置存 localStorage 等）。
 - `package.json` 的 `description` 同步重写（去掉失实与营销措辞），`keywords` 补
   `deepseek-harness-desktop` / `dsh-theme` / `frosted-glass` / `desktop`；
-  `screenshots.json` 补入 `screenshot-input.png`（商店详情页画廊用，1–8 张）。
-- 新增 **桌面版真实截图** `assets/screenshots/screenshot-desktop.png`（1707×960，抓自运行中的
-  桌面版窗口），展示顶栏与系统标题栏合并后的效果；它排在 `screenshots.json` 与 README 图库首位
-  —— 此前仓库里的截图全部来自网页版，桌面版没有任何图。
+  `screenshots.json` 补入 `screenshot-input.jpg`（商店详情页画廊用，1–8 张）。
+- **新增 3 张桌面版封面图**（2560×1440，抓自运行中的桌面版窗口），排在 `screenshots.json`
+  与 README 图库**首位**，作为商店详情页的主展示图：
+  `screenshot-desktop-session.jpg`（对话页：一行内同时容纳应用菜单、标题、对话/轨迹、
+  打开方式下拉、全屏按钮与右侧栏开关）、`screenshot-desktop-settings.jpg`（液态玻璃设置面板
+  全滑块叠在壁纸上）、`screenshot-desktop-wallpaper.jpg`（自定义壁纸 + 输入卡片边缘折射）。
+  此前仓库里的截图全部来自网页版，桌面版没有任何图；商店对截图数量上限为 8 张，
+  因此用这三张取代了先前的临时抓图 `screenshot-desktop.png`（1707×960，已从仓库移除）。
+- **截图统一压缩**：8 张画廊图从 2560 宽 PNG 改为 **1920 宽 JPEG（q85、渐进式、4:2:2 色度）**，
+  总体积 **8.79 MB → 0.87 MB（约 10%）**。1920 宽下 UI 文字依然清晰；用 4:2:2 而非 4:2:0
+  是为了避免彩色文字边缘发糊（UI 截图满是彩色小字）。压缩脚本见工作区
+  `.tools/compress-screenshots.py`，可重复执行。
 
 ### English
 
@@ -326,11 +334,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     scope, settings in localStorage, and so on).
 - `package.json` `description` rewritten to match (no stale or marketing wording) and `keywords`
   extended with `deepseek-harness-desktop` / `dsh-theme` / `frosted-glass` / `desktop`;
-  `screenshots.json` gained `screenshot-input.png` (the storefront detail gallery takes 1–8).
-- Added a **real desktop screenshot** — `assets/screenshots/screenshot-desktop.png` (1707x960,
-  captured from the running desktop window) showing the session bar merged into the system caption
-  row. It leads both `screenshots.json` and the README gallery, since every screenshot in the repo
-  until now came from the web GUI and none showed the desktop build.
+  `screenshots.json` gained `screenshot-input.jpg` (the storefront detail gallery takes 1–8).
+- Added **three desktop cover images** (2560x1440, captured from the running desktop window) and
+  put them first in both `screenshots.json` and the README gallery as the storefront's main
+  images: `screenshot-desktop-session.jpg` (one row holding the app menubar, the session title,
+  对话/轨迹, the "open in…" dropdown, the fullscreen button and the right-sidebar toggle),
+  `screenshot-desktop-settings.jpg` (every Liquid Glass slider over a wallpaper) and
+  `screenshot-desktop-wallpaper.jpg` (a custom wallpaper plus composer edge refraction). Every
+  screenshot until now came from the web GUI; the storefront caps a plugin at 8 images, so these
+  three replace the earlier ad-hoc capture `screenshot-desktop.png` (1707x960, removed).
+- **Every gallery image compressed**: the eight screenshots go from 2560-wide PNGs to
+  **1920-wide progressive JPEGs (q85, 4:2:2 chroma)** — **8.79 MB -> 0.87 MB, about 10%**.
+  Text stays crisp at 1920 wide, and 4:2:2 rather than 4:2:0 keeps coloured text edges from
+  smearing, which UI screenshots are full of. The script lives at
+  `.tools/compress-screenshots.py` in the workspace and can be re-run.
 
 ---
 
