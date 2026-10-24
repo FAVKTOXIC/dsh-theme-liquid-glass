@@ -1,6 +1,6 @@
 {
     "name": "dsh-theme-liquid-glass",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "description": "Liquid-glass theme for DeepSeek Harness (web GUI and desktop app): SVG edge refraction on the composer, bubbles, dock, menus and sidebar; translucent token overrides driven by live sliders; custom or built-in animated wallpapers; and desktop chrome extras such as the session bar merged into the system title bar and a fullscreen button.",
     "type": "module",
     "main": "lib/index.js",

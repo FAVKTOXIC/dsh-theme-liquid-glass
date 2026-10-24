@@ -10,6 +10,49 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.1] - 2026-10-25
+
+### 中文
+
+#### 修复
+- **桌面版顶栏：会话标题居中**。此前标题会跑到顶栏最右端并被截成「简…」。
+  现在标题簇**脱离头部那一行**（`position: fixed` + 左右吸附 + `margin-inline: auto` +
+  `width: max-content`，**刻意不用 transform**，以免成为头部操作所弹出 fixed 菜单的包含块），
+  以**窗口**为基准精确居中：既不受左侧菜单栏让位量影响，也不受右侧标签 / 打开方式下拉 /
+  原生窗口按钮挤压，并且与顶栏最终是"一行 flex"还是回落的"两行网格"无关。
+  选择器额外带一条**不限直接子代**的分支（`[data-slot="conversation.header"] header`）：
+  上报环境里直接子代写法 `[data-slot="conversation.header"] > header` 没有命中，
+  整套"一行布局"会静默退回原版两行网格 —— 这正是「简…」被挤在模式徽标旁的成因。
+  标题不再占位后，改由前导座位 `margin-right: auto` 把标签 / 下拉 / 角标 / 全屏按钮顶到右端。
+- **标题栏左边界改为运行时测量菜单栏宽度**（preload 的 `div[data-windows-menu]` 宽度 + 8px 间隙），
+  不再写死 134px：中文界面少留约 36px 死区；英文界面（"Application Edit" ≈154px）
+  也不会再把标题压到菜单下面；侧边栏收起、菜单右移到 84px 时自动跟随。
+- **标题不再被无谓截断**：当前会话 crumb 放开 harness 的 220px 上限，
+  并使其可收缩（`min-width: 0`）——空间不足时给省略号，而不是在容器边缘硬切半截。
+
+### English
+
+#### Fixed
+- Desktop top bar: the **session title is centred**. It used to be pushed to the far right and
+  clipped to "简…". The title cluster now leaves the header row entirely (`position: fixed`, both
+  edges pinned, `margin-inline: auto`, `width: max-content` — deliberately **without a
+  transform**, which would capture any fixed-position menu a header action opens) and is centred
+  on the WINDOW, so neither the menubar clearance on the left nor the tabs / open-in dropdown /
+  native caption buttons on the right can move or squeeze it — regardless of whether the header
+  resolved to the theme's one-row flex layout or fell back to the stock two-row grid. One
+  selector arm deliberately drops the direct-child form (`[data-slot="conversation.header"]
+  header`): on the reporting runtime `… > header` does not match, which silently drops the whole
+  one-row layout — the reason "简…" ended up jammed against the mode chip. With the title out of
+  the row, the leading seat takes `margin-right: auto` and pushes the tabs / dropdown / corner /
+  fullscreen to the right end.
+- The band's left edge is MEASURED at runtime from the menubar overlay instead of a hard-coded
+  134px — no dead gap in Chinese, no title hidden under the wider English menu, and it follows
+  the menubar when a collapsed sidebar moves it.
+- The current session crumb may use the free width instead of the stock 220px cap, and it now
+  shrinks into an ellipsis instead of being hard-clipped mid-character.
+
+---
+
 ## [0.5.0] - 2026-10-24
 
 ### 中文

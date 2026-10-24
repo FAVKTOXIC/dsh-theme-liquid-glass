@@ -263,8 +263,13 @@ if (!captioned.includes('position: fixed')) throw new Error('the desktop bar mus
 if (!captioned.includes('height: var(--dsh-windows-titlebar-height, 40px)')) throw new Error('the desktop bar must be exactly the caption band height');
 if (!captioned.includes('min-height: 0')) throw new Error('the desktop bar must drop the 48px one-row min-height');
 // The bar's BOX must start after the chrome controls, not merely pad them away:
-// a box spanning them swallows their clicks (reported bug).
-if (!captioned.includes('left: calc(var(--dsh-windows-menu-start, 48px) + 134px)')) throw new Error('the desktop bar box must start after the window-chrome controls');
+// a box spanning them swallows their clicks (reported bug). The clearance is
+// MEASURED at runtime — --dsh-lg-caption-lead, published by the client half from
+// the real menubar box — because a hard-coded lead is wrong for every locale but
+// one: 134px reserved for a ~98px Chinese menu left a dead gap that read as the
+// session title being shoved right, while the ~154px English menu would have put
+// the title UNDER the menubar.
+if (!captioned.includes('left: calc(var(--dsh-windows-menu-start, 48px) + var(--dsh-lg-caption-lead, 134px))')) throw new Error('the desktop bar box must start after the window-chrome controls, at the measured menubar clearance');
 if (/(?:^|\n)\s*padding-left: calc\(var\(--dsh-windows-menu-start/.test(styleEl.textContent)) throw new Error('the clearance must be a left offset, not padding-left');
 if (!captioned.includes('titlebar-area-width')) throw new Error('the desktop bar must clear the native caption buttons');
 if (!captioned.includes('-webkit-app-region: drag')) throw new Error('the desktop bar must claim the window drag region it now covers');
@@ -276,6 +281,26 @@ if (!styleEl.textContent.includes('black 30%, transparent 100%')) throw new Erro
 // The right-most control must not slide under the native caption buttons.
 const cornerFix = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[data-slot="conversation\.header"\] > header \[class\*="_headerCorner"\]\s*\{[^}]*\}/)?.[0] ?? '';
 if (!cornerFix.includes('margin-right: 0')) throw new Error('the header corner negative margin must be cancelled so it clears the caption buttons');
+// The desktop band CENTRES the session title: it leaves the header's row entirely
+// and is centred between the band's edges (compensating the measured menubar lead,
+// because the band starts that far into the window), so neither the menubar
+// clearance on the left nor the tabs / dropdown / caption buttons on the right can
+// squeeze it — which is exactly how "简…" got jammed against the mode chip.
+const bandTitleCluster = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on header:has\(\[role="tablist"\]\) \[class\*="_titleCluster"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!bandTitleCluster.includes('position: fixed !important')) throw new Error('the band title must leave the header row so no neighbouring item can squeeze it');
+if (!bandTitleCluster.includes('margin-inline: auto !important')) throw new Error('the band title must be centred between the window edges');
+if (!bandTitleCluster.includes('width: max-content !important')) throw new Error('the band title must size to its own text');
+if (!bandTitleCluster.includes('height: var(--dsh-windows-titlebar-height')) throw new Error('the centred title must ride the caption band');
+if (!bandTitleCluster.includes('padding-inline-start: 0 !important')) throw new Error('the desktop band must zero the in-flow leading clearance');
+if (bandTitleCluster.includes('transform')) throw new Error('the band title must be centred without a transform (it would capture fixed-position menus)');
+// The band is window-wide, so the title must be allowed to USE it: the stock crumb
+// caps at 220px and ellipsizes right next to the mode chip (reported as "the title
+// is cut off by the thing on its right"), and the cap must not turn into a hard
+// clip when space really runs out.
+const bandCrumb = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on (?:\[data-slot="conversation\.header"\] > header|header:has\(\[role="tablist"\]\)) \[class\*="_crumb"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!bandCrumb.includes('min-width: 0')) throw new Error('the band crumb must be shrinkable so a tight title ellipsizes instead of being hard-clipped mid-character');
+const bandCrumbCurrent = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on (?:\[data-slot="conversation\.header"\] > header|header:has\(\[role="tablist"\]\)) \[class\*="_crumbCurrent"\]\s*\{[^}]*\}/)?.[0] ?? '';
+if (!bandCrumbCurrent.includes('max-width: none')) throw new Error('the band must let the current session title use the free width instead of the stock 220px cap');
 // The sidebar's own collapse control is window chrome: the lens rule must not
 // drag it back into the sidebar (reported bug).
 const toggleRestore = styleEl.textContent.match(/html\[data-windows-titlebar\] body\.dsh-lg-on \[class\*="_root"\]:has\(\[class\*="_treeBody"\]\) button\[class\*="_iconButton"\]\[class\*="_toggle"\]\s*\{[^}]*\}/)?.[0] ?? '';

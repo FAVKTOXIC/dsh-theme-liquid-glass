@@ -716,11 +716,22 @@ html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) {
   /* The box itself must START after the window-chrome occupants — padding is not
      enough: a bar whose box spans them swallows their clicks (the harness pins the
      sidebar toggle at left:12px and, while collapsed, new-session at left:48px,
-     and the preload's menubar overlay sits at --dsh-windows-menu-start). The
-     occupants are: the toggle (12px..40px), the menubar (about 126px wide) and an
-     8px gap. Reading the variable keeps this correct when the harness shifts the
-     menubar to 84px once the sidebar collapses. */
-  left: calc(var(--dsh-windows-menu-start, 48px) + 134px);
+     and the preload's menubar overlay sits at --dsh-windows-menu-start). So the bar
+     has to clear the menubar's RIGHT edge — and that edge is not a constant: the
+     overlay holds "应用 编辑" (~98px) in Chinese but "Application Edit" (~154px) in
+     English. The old hard-coded 134px lead was sized for neither: it left a ~45px
+     dead gap before the conversation title (what the title looked "pushed right"
+     by), and it would have parked the title UNDER the menubar — which paints at
+     z-index 1100 — on an English locale.
+     --dsh-lg-caption-lead is that clearance, MEASURED at runtime off the menubar
+     host (div[data-windows-menu]): its width plus an 8px breathing gap. See the
+     "caption band clearance" effect in the client half. Reading
+     --dsh-windows-menu-start on top keeps the geometry right when the harness
+     shifts the menubar to 84px on a collapsed sidebar.
+     The 134px fallback only covers the frame or two before the measurement lands,
+     and is the WIDE (English-safe) value, so the first paint can never overlap the
+     menu. */
+  left: calc(var(--dsh-windows-menu-start, 48px) + var(--dsh-lg-caption-lead, 134px));
   padding-left: 0;
   /* Right: the native caption buttons cannot be styled or moved, so the content
      simply has to stop before them. Electron publishes the remaining title bar
@@ -749,6 +760,80 @@ html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"])::before 
    negative margin, which ate into the clearance above. */
 html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerCorner"] {
   margin-right: 0;
+}
+/* ── The session title is CENTRED in the caption band ────────────────────────
+   Requested behaviour: the conversation title sits on the middle of the top bar —
+   neither left nor right. It is taken OUT OF FLOW and centred instead of being
+   ordered inside the header's row:
+
+     - position: fixed centres it on the WINDOW (viewport coordinates), so it does
+       not depend on the band's measured left offset, on the header being the
+       positioned ancestor, or on whether the header resolved to the theme's
+       one-row flex layout or fell back to the stock two-row grid. left/right
+       pinned with margin-inline:auto and width:max-content does the centring
+       WITHOUT a transform — a transform here would become the containing block of
+       any fixed-position menu a header action might open;
+     - height = the caption band, so it rides the strip with the menubar;
+     - max-width keeps a long title inside the band, where the crumb rules below
+       turn the overflow into an ellipsis instead of a hard cut;
+     - the selectors include a plain DESCENDANT arm, because the runtime this was
+       reported on does not match the direct-child form
+       ([data-slot="conversation.header"] > header); that mismatch silently drops
+       the whole one-row layout, which is how "简…" ended up jammed against the
+       mode chip. Scoped to the conversation-header slot, so it can never reach a
+       tablist inside a dialog.
+
+   An earlier attempt forced order:-1 inside the row instead: that only re-ordered
+   the auto-placement of the fallback grid (the title landed in its auto-width
+   column and the tabs were pushed to a row below the band). */
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] header [class*="_titleCluster"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_titleCluster"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [class*="_titleCluster"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: var(--dsh-windows-titlebar-height, 40px) !important;
+  margin-inline: auto !important;
+  width: max-content !important;
+  max-width: 56vw !important;
+  min-width: 0 !important;
+  padding-inline-start: 0 !important;
+  flex: none !important;
+}
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] header [class*="_titleRow"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_titleRow"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [class*="_titleRow"] {
+  /* Nothing to add on the row itself — it only has to stop reserving a seat
+     (and the leading-seat padding) for a title that no longer lives in it. */
+  padding-inline-start: 0 !important;
+}
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] header [class*="_headerLeading"],
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_headerLeading"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [class*="_headerLeading"] {
+  /* The title no longer grows to push the rest of the chrome over, so the leading
+     seat takes that job: everything after it (tabs, open-in dropdown, corner,
+     fullscreen) rides the right end and the centred title sits alone in the middle. */
+  margin-right: auto !important;
+}
+/* And the title has to be allowed to USE the band. The caption strip is
+   window-wide, so the room next to the session title is measured in hundreds of
+   pixels — yet the stock crumb caps itself at 220px and ellipsizes there, which is
+   what reads as "the thing on its right is cutting the title in half": the mode
+   chip sits immediately after a title that was truncated for no reason.
+   Relax the cap for the CURRENT session crumb so it takes the free space, and make
+   the crumb a shrinkable flex item (min-width:0) so that when the room really does
+   run out the text ellipsizes INSIDE the button. Without that, the button keeps
+   min-width:auto, cannot shrink below its own text, and the cut lands on the
+   crumbs container's overflow:hidden edge instead — mid-character, no ellipsis,
+   exactly the "only half of it shows" symptom. */
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_crumb"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [class*="_crumb"] {
+  min-width: 0;
+}
+html[data-windows-titlebar] body.dsh-lg-on [data-slot="conversation.header"] > header [class*="_crumbCurrent"],
+html[data-windows-titlebar] body.dsh-lg-on header:has([role="tablist"]) [class*="_crumbCurrent"] {
+  max-width: none;
 }
 /* The sidebar's own collapse/expand control is a WINDOW-CHROME control on the
    desktop: the harness pins it into the caption band with position:fixed
@@ -1745,6 +1830,78 @@ function applyCore(ctx: ClientContext): void {
   // through the theme service itself).
   const offThemeChange = client.on?.('theme/change', () => safe('theme-change scrim', () => applier?.refreshScrim()));
   client.effect(() => offThemeChange, 'liquid-glass: theme-change scrim');
+
+  // Windows caption band clearance. The desktop title bar merges the conversation
+  // header into the 40px window strip, so that strip must START to the right of
+  // the preload's menubar overlay — `div[data-windows-menu]`, pinned at
+  // --dsh-windows-menu-start, sized to its own content, painting at z-index 1100
+  // above the page. Its width is locale-dependent ("应用 编辑" ≈ 98px,
+  // "Application Edit" ≈ 154px), which is why the stylesheet cannot hard-code the
+  // clearance: too small and the session title (the first thing in the strip) sits
+  // UNDER the menu, too large and the title is shoved right behind a dead gap —
+  // exactly the bug this effect fixes, since the old constant reserved 134px for a
+  // ~98px menu.
+  //
+  // Publish --dsh-lg-caption-lead = measured width + an 8px gap; the stylesheet
+  // does `--dsh-windows-menu-start + lead`, so a collapsed sidebar (menubar moves
+  // to 84px) stays correct for free. With no menubar at all the lead is 0, which
+  // is right: --dsh-windows-menu-start already clears the sidebar toggle and the
+  // collapsed-sidebar new-session button.
+  //
+  // The overlay comes from the preload, not from this client runtime, so on a cold
+  // start it can be missing for a few frames: retry on rAF, then watch the element
+  // itself for the label swap a locale change performs. Disposed with the fiber.
+  client.effect(() => {
+    const MENU_SELECTOR = '[data-windows-menu]';
+    const GAP = 8;
+    const MAX = 260; // a pathological menu must not eat the whole strip
+    const MAX_FRAMES = 240; // ~4s of retries, then leave the stylesheet fallback
+    let lead = -1;
+    let frames = 0;
+    let observer: MutationObserver | undefined;
+    let raf = 0;
+
+    const publish = (value: number): void => {
+      if (value === lead) return;
+      lead = value;
+      document.documentElement.style.setProperty('--dsh-lg-caption-lead', `${value}px`);
+    };
+
+    const measure = (menu: HTMLElement): void => {
+      const width = menu.getBoundingClientRect().width;
+      // A hidden or not-yet-styled host measures 0; keep the last real value.
+      if (width <= 0) return;
+      publish(Math.min(MAX, Math.ceil(width) + GAP));
+    };
+
+    const sync = (): void => {
+      const menu = document.querySelector<HTMLElement>(MENU_SELECTOR);
+      if (!menu) {
+        publish(0);
+        return;
+      }
+      measure(menu);
+      if (observer) return;
+      observer = new MutationObserver(() => measure(menu));
+      observer.observe(menu, { childList: true, subtree: true, characterData: true });
+    };
+
+    const retry = (): void => {
+      sync();
+      if (observer || frames >= MAX_FRAMES) return;
+      frames += 1;
+      raf = requestAnimationFrame(retry);
+    };
+
+    retry();
+    window.addEventListener('resize', sync);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', sync);
+      observer?.disconnect();
+      document.documentElement.style.removeProperty('--dsh-lg-caption-lead');
+    };
+  }, 'liquid-glass: caption band clearance');
 
   // Water-drop settings icon. The settings shell picks a nav glyph per section
   // id via a HARD-CODED map (see `navIcon` in dsh-client-ui-settings-general):
